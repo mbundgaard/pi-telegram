@@ -59,6 +59,7 @@ export async function submitFeedback(endpoint: string, feedback: string, version
 /** Native feedback state is separate from agent questions and never becomes agent input. */
 export class FeedbackFlow {
   private current?: Flow;
+  get active(): boolean { return !!this.current; }
   private readonly known = new Set<number>();
   constructor(private readonly owner: number, private readonly botId: number | undefined, private readonly options: FeedbackOptions | undefined, private readonly io: IO) {}
   private live(flow: Flow): boolean { return this.current === flow && !flow.controller.signal.aborted && !this.io.signal.aborted && Date.now() < flow.expires; }

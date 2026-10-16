@@ -67,6 +67,7 @@ function assertSafeRelativePath(relativePath: string): void {
 
   if (
     segments.includes(".git") ||
+    segments.includes("telegram-secrets") ||
     isEnvironmentFile ||
     isPrivateKey ||
     isCredentialFile
@@ -96,6 +97,7 @@ export async function resolveTelegramProjectFile(
 
   const projectRoot = await realpath(cwd);
   const requestedPath = resolve(cwd, filePath);
+  assertSafeRelativePath(relative(projectRoot, requestedPath));
   let canonicalPath: string;
   try {
     canonicalPath = await realpath(requestedPath);
@@ -121,6 +123,7 @@ export async function resolveTelegramProjectFile(
   await assertNotConfiguredCredential(canonicalPath, cwd);
 
   const information = await stat(canonicalPath);
+  if (information.nlink !== 1) throw new Error("Telegram attachments must not be hard-linked files.");
   if (!information.isFile())
     throw new Error("The Telegram attachment must be a file.");
   if (information.size > TELEGRAM_DOCUMENT_LIMIT) {
@@ -188,6 +191,7 @@ export async function readTelegramProjectFile(
     const info = await handle.stat();
     if (
       !info.isFile() ||
+      info.nlink !== 1 ||
       info.ino !== file.inode ||
       info.dev !== file.device ||
       info.size > TELEGRAM_DOCUMENT_LIMIT

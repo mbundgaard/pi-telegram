@@ -46,6 +46,15 @@ test("explicit tools have mandatory independent lifecycle and security guidance;
   assert.ok(tools.has("telegram_send_photo"));
 });
 
+test("native secret discovery is mandatory tool guidance, not a model-facing intake tool", () => {
+  const tools = registeredTools();
+  assert.ok([...tools.keys()].every(name => !name.includes("secret")));
+  for (const name of ["telegram_post", "telegram_draft", "telegram_edit", "telegram_activity"]) {
+    const guidance = tools.get(name).promptGuidelines.join(" ");
+    for (const phrase of [/native \/secret <filename>/, /Bare \/secret/, /non-sensitive filename/, /separate content prompt/, /fixed five-minute deadline/, /reply directly/, /ForceReply/, /never request real secrets to test support/, /metadata-only save confirmation/, /Do not read, preview, echo or upload/, /reviewed consumer/, /not masked or end-to-end encrypted/, /deletion is best effort/, /files are plaintext/, /masked local setup UI, not \/secret/]) assert.match(guidance, phrase);
+  }
+});
+
 test("only durable reply tools record reminder evidence synchronously before preflight awaits", async () => {
   const tools = registeredTools();
   const original = ReplyReminder.prototype.attempt;

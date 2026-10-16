@@ -110,6 +110,17 @@ export class ConnectionManager {
         // Retain bot identity even while submission is disabled so replies to
         // stale feedback prompts cannot fall through to model input.
         botId: Number(bot.id),
+        secret: {
+          cwd: ctx.cwd,
+          current: () => this.isReady && this.connection === current && this.epoch === epoch &&
+            !lease.signal.aborted && !signal.aborted && sessionId === ctx.sessionManager.getSessionId(),
+          verify: async () => {
+            const configured = (await loadProjectSettings(ctx.cwd))?.bots.find(entry => entry.id === bot.id);
+            return this.isReady && this.connection === current && this.epoch === epoch &&
+              !lease.signal.aborted && !signal.aborted && sessionId === ctx.sessionManager.getSessionId() &&
+              configured?.sessionId === sessionId && configured.token === bot.token && configured.ownerUserId === bot.ownerUserId;
+          },
+        },
         ...(this.callbacks.feedbackEndpoint === undefined ? {} : {
           feedback: { endpoint: this.callbacks.feedbackEndpoint, version: this.callbacks.version ?? "unknown" },
         }),

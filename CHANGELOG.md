@@ -2,7 +2,14 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
-## 0.6.2 — candidate, not published
+## 0.6.3 — native secret intake
+
+- Add owner/private `/secret` (including menu invocation) with a filename ForceReply followed by a separate filename-labelled content ForceReply; `/secret <filename>` remains a direct shortcut. Both stages and filename corrections share one fixed five-minute deadline. Old filename prompts are rejection-only after transition, cancellation, expiry and reconnect; filename messages remain for manual cleanup. Exact nonempty text (including whitespace) is saved as UTF-8 under `.pi/telegram-secrets/`, never previewed or sent to the model. Only bounded path/byte-count metadata becomes an authenticated follow-up.
+- Validate filename and destination before prompting; refuse overwrites, tracked/symbolic paths and unsafe directory permissions. Ignore the entire dedicated directory, publish via atomic no-clobber hard link, and exclude it from outgoing files/photos regardless of filename. Outgoing hard-linked files are now refused too.
+- Block unmatched input/media/callbacks during intake; reject stale own-bot prompt replies even after reconnect. `/cancel` retires native intake/feedback; existing global `stop` and `/stop` remain reserved even as prompt replies. Feedback, downloads and agent questions must finish before starting intake.
+- Request deletion of only the secret reply and prompt after saving; failed/uncertain deletion warns without quoting or retrying. Telegram bots are not end-to-end encrypted and files remain plaintext; model guidance cannot prevent later filesystem access. Local hostile filesystem mutation, crash recovery, Telegram retention and real-client behavior are not guaranteed. Independent source review and dummy-data tests passed; live secret intake/deletion remains unverified. ForceReply is not masked. Ordinary standalone messages after intake ends follow normal chat routing; only recognizable stale prompt replies fail closed. `/cancel` and `/secret`-prefixed input take precedence over literal feedback replies; finish feedback before starting secret intake.
+
+## 0.6.2
 
 - Make ordinary startup/resume/reconnection silent; native owner/private `/ping` reports project and loaded version without invoking the model.
 - An authenticated idle `/reload` can acknowledge a fresh, ready Telegram runtime for the same verified assignment. This is not proof all Pi/UI reload steps succeeded, nor process restart. Requires reload lifecycle reasons and stable session-manager identity; unsupported hosts suppress the acknowledgement. Use Pi 0.84.4+ (candidate tested with 1.3.0) and Node 22.19.0+.

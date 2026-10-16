@@ -2,7 +2,23 @@
 
 [Quick start](../README.md) · [Changelog](../CHANGELOG.md) · [Agent tools](agent-tools.md)
 
-This guide describes the **0.6.2 candidate**, not yet published; public npm remains **0.6.1**. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
+This guide describes **0.6.3**. Publication evidence is recorded in [development status](development-status.md); installation and loaded-runtime support are separate. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
+
+## Native secret files (0.6.3)
+
+Source review and dummy-data tests passed; live intake/deletion remains unverified. Confirm that a supporting runtime is loaded before sending any value; documentation does not activate it.
+
+In the paired owner's private bot chat, select `/secret` from the menu or send it bare. Reply directly to the native filename prompt with a non-sensitive filename only, then wait for a separate “Ready to save filename” content prompt. Alternatively send `/secret filename` to skip the filename question. Use a simple ASCII basename (1–64 characters, starting with a letter/digit, then letters/digits/dots/underscores/hyphens). Paths, leading dots, repeated/trailing dots, device names and config/git names are rejected. Never put secret data in the command or filename. Invalid filename replies can be corrected by replying again to the same filename prompt; existing/unavailable destinations are refused before requesting contents. Invalid explicit `/secret filename` shortcuts are refused without starting intake.
+
+Reply **directly to the bot's “Ready to save filename” prompt** within five minutes of starting intake. This is one fixed deadline for both stages and all corrections, not five minutes per prompt. Nonempty text is stored exactly as UTF-8, including whitespace, up to 16,384 bytes. Empty text, media, forwarded data and edits are not accepted. No preview is produced. `/cancel`, `/stop` (including their native command forms/arguments), and plain `stop` are reserved even in exact replies: they cancel rather than become file contents. Other exact content-prompt reply text is literal data, not an executable command. Filename-prompt replies are only filenames and never become file contents; once accepted, old filename-prompt replies are rejected.
+
+During intake, unmatched messages and other controls are blocked rather than sent to the model. Finish/cancel feedback or an outstanding agent question, and finish downloads, before starting. `/cancel` cancels native secret intake and feedback, not an agent task. Stop retains its existing request-scoped agent cancellation authority. Replying to an expired/cancelled prompt cannot restart intake; start a new `/secret` request instead.
+
+Files are created without overwrite at `.pi/telegram-secrets/filename`. The entire directory is Git-ignored and refused by Telegram document/photo upload tools, including unrecognized filenames; outbound hard-link aliases are refused as well. Existing unsafe paths/permissions require local repair, not automatic broad chmod or deletion. Unix creation modes are directory 0700/file 0600; these are not a Windows ACL guarantee.
+
+After saving, the bot attempts one bounded deletion each for the original data reply and content prompt (filename prompts and replies remain for manual cleanup), then confirms the filename and byte count. Failed/uncertain deletion asks you to remove them manually; do not assume Telegram's copies, notifications or backups disappeared. Stop/disconnect/expiry cannot undo an already completed save; if interrupted after commit, the file can exist without a success notice or agent notification. Check locally before starting again—existing files will not be overwritten. Cancelled/failed intake leaves chat messages for manual removal.
+
+**Privacy limits:** The input fence lasts only while intake is active. After cancellation, expiry, preparation failure or reconnect, ordinary text that is not a direct reply to a recognizable secret prompt follows normal chat routing and can reach the model. Never paste a value as a standalone message; the flow does not scan or redact ordinary conversation. Telegram bot chats are not end-to-end encrypted. Files are plaintext, not masked or encrypted. Only the saved project-relative path and byte count reach the agent, with instructions not to inspect the contents; a filesystem-capable agent can still read them later. Do not submit secrets if this boundary is insufficient. The storage safeguards are not protection against a hostile local process concurrently replacing project paths or changing Git state; a crash/failed cleanup may leave an ignored private temporary file. No automatic startup solicitation, deletion retry, secret processing, execution or interpolation occurs.
 
 ## Where commands run
 
@@ -22,11 +38,11 @@ Open the new bot's private Telegram chat, press **Start**, then send the exact o
 
 A regular BotFather bot can be restored after reinstall by adding its username/token again. Re-adding an already paired project bot preserves its stored owner. Changing owners requires explicitly removing the local entry and pairing again; do not edit the owner field manually.
 
-### Explicit reload acknowledgement (0.6.2 candidate)
+### Explicit reload acknowledgement (since 0.6.2)
 
 An accepted private owner `/reload` can reply `Telegram reloaded · v<loadedVersion>` once the **new Telegram runtime** has loaded and verified the same connection. This does not certify that every Pi resource/UI reload step succeeded. No reply is promised after failed/expired reloads, changed assignments or delivery failures; use `/ping` to check readiness. Local reloads, ordinary startup/reconnection and updater reloads do not arm this acknowledgement. Busy/pending work and downloads refuse native reload. Use Pi 0.84.4 or later and Node 22.19.0 or later; candidate checks use Pi 1.3.0. The acknowledgement requires explicit reload lifecycle reasons and the identical session-manager object across fresh factories (verified in the examined 0.84.4/0.87.1/1.3.0 implementations). Hosts lacking these properties suppress the acknowledgement; `*` peers do not promise compatibility with every host. This is not process restart.
 
-### Silent startup (0.6.2 candidate)
+### Silent startup (since 0.6.2)
 
 Startup, resume, reload and reconnection no longer send an automatic Connected message. Check local `/telegram-status`, or send `/ping` in the paired owner's private chat for `Pong · project · vLoadedVersion`. Ping is handled by the extension even while the model is busy: it does not steer, create a model request or grant file/Stop authority. It does not look up Git, hostname or IP; `/status` remains detailed. No reply is promised while disconnected. Published 0.6.1 retains its startup notice. Explicit setup confirmations, critical errors and update offers are unchanged.
 
@@ -62,6 +78,8 @@ One host-local lease protects polling/pairing. Release the old integration befor
 | `stop` / `/stop` | Requests cancellation of eligible Telegram-originated work; not proof all workers stopped |
 | `/reload` | Requests Pi reload while idle; does not replace the Pi process |
 | `/help` | Lists Telegram controls |
+| `/secret [filename]` | Native filename/content intake; never put values in the command |
+| `/cancel` | Cancels native secret intake or feedback |
 
 Process restart is unsupported. A manually typed `/restart` safely refuses, without queuing work or shutting down. Only persistent-session assignments are supported; instance-following is not implemented.
 
@@ -77,13 +95,13 @@ The `/feedback` command is separate from the coding agent. The owner-approved pr
 
 Only Submit sends JSON containing `feedback` and `version` to the HTTPS endpoint. No Telegram user/chat/bot IDs, project/session identities, files, transcripts or credentials are added. Your own text can contain sensitive data: do not include secrets or private project details. Telegram still carries the prompt/reply, and ordinary network metadata exists; this is not an anonymity guarantee. A ten-second timeout and redirects-as-errors apply, with no automatic retry. HTTP 200 is success even with an empty body. Uncertain delivery is not proof nothing arrived; do not blindly resubmit.
 
-Feedback is not AI-processed, does not create a request receipt or arm the reply reminder, and does not replace an active agent question. **Exception:** `stop` and `/stop` retain their existing global-control priority even when replying to a feedback prompt: they cancel feedback and may abort eligible Telegram work/clear its question. Other commands in an exact feedback reply are literal feedback text. Native UI cleanup is best effort, not proof of cancellation. No rating, automatic welcome/upgrade prompt or backend implementation is included.
+Feedback is not AI-processed, does not create a request receipt or arm the reply reminder, and does not replace an active agent question. **Exception:** `stop` and `/stop` retain their existing global-control priority even when replying to a feedback prompt: they cancel feedback and may abort eligible Telegram work/clear its question. In 0.6.3, `/cancel` also cancels native feedback, and `/secret`-prefixed replies are intercepted rather than stored as literal feedback (intake is refused while feedback is active). Other commands in an exact feedback reply are literal feedback text. Native UI cleanup is best effort, not proof of cancellation. No rating, automatic welcome/upgrade prompt or backend implementation is included.
 
 ## Files and privacy
 
 For a requested outgoing project file, the agent can use `telegram_send_file` (up to 50 MB). `telegram_send_photo` sends inline PNG/JPEG (up to 10 MB, width+height at most 10,000, aspect ratio at most 20:1). Captions are at most 1,024 characters. Photos may be resized/compressed; ask for document delivery for original bytes. There is no automatic format conversion or metadata removal.
 
-**Voice intake (0.6.2 candidate):** private owner `message.voice` notes use the same inbox limits and cancellation safeguards as documents/photos. Original bytes are saved as a generated `*-voice.bin`, without assuming a codec from MIME. Bounded claimed MIME/duration are labeled untrusted in the agent receipt alongside the actual byte count. Captionless notes ask for instructions; there is no automatic inspection, decoding or transcription, no transcription provider, and no support for `message.audio`, video notes or other media. Original-format preservation was locally verified in the prior owner workflow (reported for this preparation); this preparation performs no live voice download, decoding, transcription or cloud upload. Candidate activation remains unverified.
+**Voice intake (since 0.6.2):** private owner `message.voice` notes use the same inbox limits and cancellation safeguards as documents/photos. Original bytes are saved as a generated `*-voice.bin`, without assuming a codec from MIME. Bounded claimed MIME/duration are labeled untrusted in the agent receipt alongside the actual byte count. Captionless notes ask for instructions; there is no automatic inspection, decoding or transcription, no transcription provider, and no support for `message.audio`, video notes or other media. Original-format preservation was locally verified in the prior owner workflow (reported for this preparation); this preparation performs no live voice download, decoding, transcription or cloud upload. Loaded-runtime activation remains unverified.
 
 The paired owner may upload documents/photos privately. Captions become follow-up instructions, not Telegram commands. Without a caption the agent should ask what you want before inspection. Downloads are limited to 20 MB each and 100 files/100 MB total inbox storage, saved under `.pi/telegram-inbox/`; files stay until removed locally. Partial downloads are cleaned up. Only one download runs at a time; honor resend notices during it. Ordinary text and `/steer` remain admissible during downloads, subject to console-task protection; additional attachments and question-button selections require retry after the download.
 

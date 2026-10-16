@@ -1,6 +1,6 @@
 {
   "name": "@comput/pi-telegram",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Your Pi session, wherever you are. Send requests, share screenshots and get replies and files through Telegram—without losing your project context.",
   "license": "MIT",
   "author": "Martin Bundgaard",
