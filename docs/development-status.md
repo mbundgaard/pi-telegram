@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.2 publication diagnosis — repository transfer metadata correction
+## 0.6.2 released — verified
+
+Public npm `latest` is **0.6.2**, released from [`2db09f05b17233320a3a9a42ec2f11a132db1c1e`](https://github.com/mbundgaard/pi-telegram/commit/2db09f05b17233320a3a9a42ec2f11a132db1c1e). [CI 38955575579](https://github.com/mbundgaard/pi-telegram/actions/runs/38955575579) and [Trusted Publishing 38955587978](https://github.com/mbundgaard/pi-telegram/actions/runs/38955587978) succeeded. Exactly one new publication dispatch followed the repository-metadata correction below; no version bump or duplicate trigger. Registry visibility initially lagged workflow success, then latest and version metadata confirmed 0.6.2 without retrying publication.
+
+All **42 published files** byte-match that release commit. Downloaded tarball SHA-1: `35f61864d06b1e16bbff639ec7bc5afcdee1c9eb`. Computed SHA-512 matches registry integrity `sha512-+xgAfnK4L+okbwiuLheGE6WBCglItcxwv14oDUtjjiyrUYPrWiwm3jXjlIJxE7b5NEMzaKzCeWjUZwkEbNvFhw==` and the decoded SLSA subject digest. Decoded SLSA v1 links `mbundgaard/pi-telegram`, `.github/workflows/publish.yml`, the exact release commit and run **38955587978**, attempt **1**. This verifies hashes and payload linkage, not independent DSSE/certificate-chain/Rekor cryptographic verification.
+
+Final local checks passed typecheck, **234 tests** (none skipped), full audit **zero vulnerabilities**, pack **42 files** and diff checks. A freshly rebuilt local artifact also byte-matched all 42 tree files before publication. CI and publication validation succeeded. No running installation, reload, restart, live bot tests or external messages were performed; prior two-session/host-cancellation/adverse-network limitations remain. The immutable published tarball retains its pre-publication documentation snapshot; this later documentation checkpoint does not change it. Do not republish 0.6.2.
+
+## Historical 0.6.2 publication diagnosis — repository transfer metadata correction
 
 [Publish run 38954614689 attempt 2](https://github.com/mbundgaard/pi-telegram/actions/runs/38954614689/attempts/2) acquired an OIDC token but failed with E422; the old filter omitted the detailed reason. Registry checks still found latest 0.6.1 and no 0.6.2. Public GitHub metadata identifies the transferred repository as `mbundgaard/pi-telegram`, while package repository/homepage/issues and source release-notes metadata still named `comput-sh/pi-telegram`.
 

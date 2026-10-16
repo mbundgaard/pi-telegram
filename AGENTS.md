@@ -4,14 +4,20 @@
 
 Pi Telegram is a globally loaded TypeScript package that makes Telegram a native frontend for live Pi coding-agent sessions. It talks directly to the Telegram Bot API. There is no hosted provisioner, cloud registry, Azure dependency, deterministic project key, or tracked bot binding in the current product.
 
-- Repository: <https://github.com/comput-sh/pi-telegram>
+- Repository: <https://github.com/mbundgaard/pi-telegram>
 - npm package: `@comput/pi-telegram`
 - Development checkout: `D:\Source\PiTelegram`
 - Canonical product name: **Pi Telegram**.
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.2 candidate — audit blocker resolved, not published
+## Current 0.6.2 release — verified
+
+- Public npm `latest` is **0.6.2**, released from `2db09f05b17233320a3a9a42ec2f11a132db1c1e`. CI **38955575579** and Trusted Publishing **38955587978** succeeded under `mbundgaard/pi-telegram` after correcting transferred repository metadata. One corrected dispatch; earlier run **38954614689** attempt 2 failed E422 despite successful OIDC. The old detailed reason was filtered; npm's documented repository-match prerequisite was demonstrably violated and the corrected publication succeeded.
+- All **42 published files** byte-match the release commit. SHA-1: `35f61864d06b1e16bbff639ec7bc5afcdee1c9eb`; registry integrity: `sha512-+xgAfnK4L+okbwiuLheGE6WBCglItcxwv14oDUtjjiyrUYPrWiwm3jXjlIJxE7b5NEMzaKzCeWjUZwkEbNvFhw==`. Decoded SLSA subject hash and linkage match the commit, `mbundgaard/pi-telegram`, `.github/workflows/publish.yml`, run **38955587978**, attempt **1**; no independent DSSE/certificate-chain/Rekor verification.
+- Local typecheck, **234 tests** (none skipped), full audit zero vulnerabilities, pack42 and diff checks passed. No running installation/reload/restart, live Telegram tests or external messages. Prior release limitations remain. Published docs retain their pre-publication snapshot; see `docs/development-status.md`. Do not republish **0.6.2**. Hidden runtime state and artifacts remain excluded.
+
+## Historical 0.6.2 candidate — audit blocker resolved, not published
 
 - Local package/lock candidate **0.6.2**; registry latest remains **0.6.1**, and 0.6.2 was unused at preparation. No publication/commit/push/tag/install into running Pi/reload/live bot testing.
 - Scope: silent startup, native ping, narrow fresh-Telegram-runtime reload acknowledgement and inert voice intake. Native restart menu/help advertising removed; typed `/restart` safely refuses. Instance-following remains unimplemented. Original-format voice preservation is reported locally verified by the preparation request; no transcription/cloud feature or new live test here.
