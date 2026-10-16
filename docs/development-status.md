@@ -2,7 +2,17 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.3 release preparation — publication pending
+## 0.6.3 released — verified
+
+Public npm `latest` is **0.6.3**, released from [`b7aa4ceeacf25afac9294af4ae7fc8f0d9536455`](https://github.com/mbundgaard/pi-telegram/commit/b7aa4ceeacf25afac9294af4ae7fc8f0d9536455). [CI 38978048307](https://github.com/mbundgaard/pi-telegram/actions/runs/38978048307) and [Trusted Publishing 38978137401](https://github.com/mbundgaard/pi-telegram/actions/runs/38978137401) succeeded. Exactly one workflow dispatch; registry visibility lagged before latest/version confirmation, without publication retry.
+
+All **45 published files** byte-match the release commit. Downloaded SHA-1 is `dc13098aafe2b5648f5fa9884632b92139494087`; computed SHA-512 matches registry integrity `sha512-S19Epkdz57UyC8TBj0doNsijG2sf77MnorPVvIdYowGXFhnFzTgWPxm3Kk/ur+0aR/5mHBgB2hXmNsSMuAx0qA==` and the decoded SLSA subject hash. Decoded SLSA v1 links the exact commit, `mbundgaard/pi-telegram`, `.github/workflows/publish.yml` and run **38978137401**, attempt **1**. Hash and payload linkage verification is not independent DSSE/certificate-chain/Rekor cryptographic verification.
+
+Fresh clean `npm ci`, typecheck and **255 tests** (zero failures/skips), full and production audits (**zero vulnerabilities**), pack (**45 allowlisted files**) and diff checks passed. A fresh local artifact also byte-matched the tree; registry bytes match its hash. Only root package/lock versions changed; no dependency churn. Hidden runtime state, secrets, artifacts, tests and dependencies are excluded from the package. Release commit and subsequent checkpoint stage only explicit intended paths.
+
+No installation into running Pi, reload/restart, live Telegram/secret submission, runtime-secret inspection, external owner messages or task spawning occurred. Source review/mocks do not prove live privacy, masking or deletion: ForceReply is not masked/E2EE, stored data is plaintext and filesystem-accessible, deletion is best effort, filename messages remain, and post-flow standalone text follows ordinary chat routing. Known `/secret`/`/cancel` feedback precedence is documented in the user guide. Windows ACL guarantees, hostile local mutation isolation, crash recovery, two-session testing, host cancellation and adverse-network behavior remain outside verified evidence. Restart and instance-following remain unsupported. Published documentation retains its pre-publication snapshot; this checkpoint does not alter the immutable package. Do not republish 0.6.3.
+
+## Historical 0.6.3 release preparation — publication pending
 
 Owner authorized the patch release, explicit commit/push and one existing Trusted Publishing dispatch after validation. Registry latest was 0.6.2; 0.6.3 was absent. Independent source review and Main's menu-flow review passed. Scope includes both native `/secret` routes, protected storage, metadata-only follow-up, mandatory/skill guidance and source-only dummy-data tests. Dependencies are unchanged.
 
