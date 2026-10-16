@@ -25,7 +25,7 @@ import { realpath } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { reloadIntents } from "./reload-intent.ts";
 
-const RELEASE_NOTES_URL = "https://github.com/comput-sh/pi-telegram/blob/main/CHANGELOG.md";
+const RELEASE_NOTES_URL = "https://github.com/mbundgaard/pi-telegram/blob/main/CHANGELOG.md";
 
 export default function piTelegram(pi: ExtensionAPI): void {
   const running = runningPackage();

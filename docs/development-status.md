@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.2 candidate preparation — audit blocker resolved, not published
+## 0.6.2 publication diagnosis — repository transfer metadata correction
+
+[Publish run 38954614689 attempt 2](https://github.com/mbundgaard/pi-telegram/actions/runs/38954614689/attempts/2) acquired an OIDC token but failed with E422; the old filter omitted the detailed reason. Registry checks still found latest 0.6.1 and no 0.6.2. Public GitHub metadata identifies the transferred repository as `mbundgaard/pi-telegram`, while package repository/homepage/issues and source release-notes metadata still named `comput-sh/pi-telegram`.
+
+[npm provenance documentation](https://docs.npmjs.com/generating-provenance-statements/) requires package.json's public repository to match the publishing repository **case-sensitively**. [npm CLI provenance generation](https://github.com/npm/cli/blob/latest/workspaces/libnpmpublish/lib/provenance.js) derives the workflow repository and source dependency from `GITHUB_REPOSITORY`, not package metadata. This establishes a concrete violated publication prerequisite consistent with E422, not recovery of the filtered server reason. Corrected those four current metadata URLs; historical release evidence remains unchanged. Added narrowly selected E422 error-line diagnostics with credential and URL query/fragment redaction, never raw HTTP logs. No credentials or private HTTP logs were inspected.
+
+Fresh correction validation passed typecheck, **234 tests** (none skipped), full audit **zero vulnerabilities**, pack **42 files**, and diff checks. Version remains 0.6.2 because it has not been published; one corrected dispatch is authorized after another registry absence check. No running installation/reload/restart, live Telegram tests or external messages.
+
+## Historical 0.6.2 candidate preparation — audit blocker resolved, not published
 
 Registry checks found public latest **0.6.1** and no published 0.6.2. Package/lock root versions are now **0.6.2**, a local candidate only. This supersedes earlier source-version/audit gates below without rewriting their historical evidence.
 

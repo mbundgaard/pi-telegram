@@ -12,13 +12,13 @@
     "telegram",
     "coding-agent"
   ],
-  "homepage": "https://github.com/comput-sh/pi-telegram#readme",
+  "homepage": "https://github.com/mbundgaard/pi-telegram#readme",
   "bugs": {
-    "url": "https://github.com/comput-sh/pi-telegram/issues"
+    "url": "https://github.com/mbundgaard/pi-telegram/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/comput-sh/pi-telegram.git"
+    "url": "git+https://github.com/mbundgaard/pi-telegram.git"
   },
   "files": [
     "src/**/*.ts",

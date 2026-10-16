@@ -30,4 +30,24 @@ jobs:
           result=$?
           # Only print authentication diagnostics and publication status, not raw HTTP logs.
           grep -E '^npm (verbose oidc|error (code|need auth)|notice (Publishing|publish))|^\+ ' "$RUNNER_TEMP/npm-publish.log" | sed -E 's/npm_[A-Za-z0-9]+/[REDACTED]/g; s/eyJ[A-Za-z0-9_.-]+/[REDACTED]/g' || true
+          # Emit only E422 error lines, never the verbose HTTP log. Redact URL
+          # credentials/query/fragment data and common credential formats first.
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const log = readFileSync(`${process.env.RUNNER_TEMP}/npm-publish.log`, 'utf8');
+          for (const line of log.split('\n')) {
+            if (!/^npm error (?:422|E422)\b/.test(line)) continue;
+            const safe = line
+              .replace(/https?:\/\/[^\s<>"']+/g, value => {
+                try {
+                  const url = new URL(value);
+                  return `${url.protocol}//${url.host}${url.pathname}`;
+                } catch { return '[REDACTED URL]'; }
+              })
+              .replace(/npm_[A-Za-z0-9]+|eyJ[A-Za-z0-9_.-]+/g, '[REDACTED]')
+              .replace(/(authorization|token|password|secret)\s*[:=]\s*\S+/gi, '$1=[REDACTED]')
+              .replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]');
+            console.log(safe);
+          }
+          NODE
           exit "$result"
