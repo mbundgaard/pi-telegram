@@ -26,10 +26,10 @@ test("incoming bytes stay in a unique ignored inbox without replacing project fi
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test("incoming size, quota, truncation and cancellation checks remove partial files", async () => {
+for (const kind of ["document", "voice"] as const) test(`${kind} size, quota, truncation and cancellation checks remove partial files`, async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-inbox-limits-"));
   try {
-    const receive = (size: number | undefined, download: () => Promise<Response>, signal = new AbortController().signal) => receiveProjectAttachment(dir, { ...attachment, size }, signal, download);
+    const receive = (size: number | undefined, download: () => Promise<Response>, signal = new AbortController().signal) => receiveProjectAttachment(dir, { ...attachment, kind, size }, signal, download);
     let called = false;
     await assert.rejects(receive(INCOMING_FILE_LIMIT + 1, async () => { called = true; return new Response(); }), /20 MB/);
     assert.equal(called, false);

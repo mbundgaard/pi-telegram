@@ -55,7 +55,49 @@ test("feedback wiring retains trusted bot identity while disabled and uses the l
   }
 });
 
-test("slow menu APIs cannot block Connected or startup completion; disconnect aborts menu work", async () => {
+test("restart refusal callback is fenced to the ready connection and exact session", async () =>
+  fixture(async ({ manager, bot, ctx }: any) => {
+    await manager.connect(bot, ctx, new AbortController().signal);
+    const refusal = manager.connection.options.restartRefusal;
+    assert.match(refusal(), /cannot verify the updated Pi launcher/);
+    ctx.sessionManager.getSessionId = () => "replacement";
+    assert.match(refusal(), /no longer ready/);
+    ctx.sessionManager.getSessionId = () => "main";
+    await manager.disconnect(ctx);
+    assert.match(refusal(), /no longer ready/);
+    await manager.connect(bot, ctx, new AbortController().signal);
+    assert.match(refusal(), /no longer ready/);
+  }));
+
+test("native ping is owner/private only and drops stale session and retired connection requests", async () =>
+  fixture(async ({ manager, bot, ctx, calls }: any) => {
+    await manager.connect(bot, ctx, new AbortController().signal);
+    const current = manager.connection;
+    assert.match(current.options.ping(), /^Pong · pi-notice-.* · vtest$/);
+    let inputs = 0;
+    const dispatch = (owner = 42, type = "private") => current.dispatch({ update_id: 1, message: {
+      message_id: 1, text: "/ping", chat: { id: 42, type }, from: { id: owner, is_bot: false },
+    } }, () => { inputs++; }, () => {}, () => "status", () => false);
+    const flush = () => new Promise(resolve => setTimeout(resolve, 20));
+    dispatch(7); dispatch(42, "group"); await flush();
+    assert.equal(calls.filter((m: string) => m === "sendMessage").length, 0);
+    dispatch(); await flush();
+    assert.equal(calls.filter((m: string) => m === "sendMessage").length, 1);
+    // Fence at effect execution, not only at admission.
+    dispatch(); ctx.sessionManager.getSessionId = () => "other";
+    await flush();
+    assert.equal(current.options.ping(), undefined);
+    assert.equal(calls.filter((m: string) => m === "sendMessage").length, 1);
+    ctx.sessionManager.getSessionId = () => "main";
+    await manager.disconnect(ctx);
+    await manager.connect(bot, ctx, new AbortController().signal);
+    assert.equal(current.options.ping(), undefined);
+    dispatch(); await flush();
+    assert.equal(calls.filter((m: string) => m === "sendMessage").length, 1);
+    assert.equal(inputs, 0);
+  }));
+
+test("silent startup completes independently of slow menu APIs; disconnect aborts menu work", async () => {
   for (const slowMethod of ["setMyCommands", "setChatMenuButton"]) {
     await fixture(async ({ manager, bot, ctx, calls, warnings, handle, connected }: any) => {
       let entered!: () => void;
@@ -71,7 +113,8 @@ test("slow menu APIs cannot block Connected or startup completion; disconnect ab
       // The short deadline reproduces startup budget exhaustion without a 30s test.
       assert.equal(await manager.connect(bot, ctx, AbortSignal.timeout(1000)), true);
       await menuStarted;
-      assert.ok(calls.indexOf("sendMessage") < calls.indexOf("setMyCommands"));
+      assert.ok(!calls.includes("sendMessage"));
+      assert.equal(manager.isReady, true);
       assert.equal(connected(), 1);
       assert.ok(manager.connection);
       await manager.disconnect(ctx);
@@ -92,14 +135,14 @@ test("menu failures warn locally without undoing a successful connection", async
     assert.ok(warnings.some((text: string) => text.includes("command menu")));
   }));
 
-test("an initializing connection is not ready and a failed notice releases it for retry", async () =>
+test("an initializing connection is not ready and failed initialization releases it for retry", async () =>
   fixture(async ({ manager, bot, ctx, handle, calls, connected }: any) => {
     let entered!: () => void, fail!: () => void;
     const sending = new Promise<void>(resolve => { entered = resolve; });
     const release = new Promise<void>(resolve => { fail = resolve; });
-    handle(async (method: string) => { if (method === "sendMessage") { entered(); await release; throw new Error("offline"); } });
+    handle(async (method: string) => { if (method === "getWebhookInfo") { entered(); await release; throw new Error("offline"); } });
     const attempt = manager.connect(bot, ctx, new AbortController().signal);
-    const rejected = assert.rejects(attempt, /connection notice/);
+    const rejected = assert.rejects(attempt, /getWebhookInfo failed/);
     await sending;
     assert.equal(await manager.connect(bot, ctx, new AbortController().signal), false);
     fail();
@@ -107,6 +150,7 @@ test("an initializing connection is not ready and a failed notice releases it fo
     assert.equal(manager.connection, undefined);
     assert.equal(connected(), 0);
     assert.ok(!calls.includes("setMyCommands"));
+    assert.ok(!calls.includes("sendMessage"));
     handle(async () => undefined);
     assert.equal(await manager.connect(bot, ctx, new AbortController().signal), true);
   }));

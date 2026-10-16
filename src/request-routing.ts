@@ -16,6 +16,7 @@ interface Origin<T> { destination: T; admitted: boolean; reminder: boolean; isCu
 export class RequestOrigins<T> {
   private pending = new Map<string, Origin<T>>();
   current?: T;
+  get hasPending(): boolean { return this.pending.size > 0; }
   private retired = new Set<string>();
   private retiredReminders = new Set<string>();
   private retireReminder(text: string): void {

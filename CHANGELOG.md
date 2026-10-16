@@ -2,6 +2,14 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.2 — candidate, not published
+
+- Make ordinary startup/resume/reconnection silent; native owner/private `/ping` reports project and loaded version without invoking the model.
+- An authenticated idle `/reload` can acknowledge a fresh, ready Telegram runtime for the same verified assignment. This is not proof all Pi/UI reload steps succeeded, nor process restart. Requires reload lifecycle reasons and stable session-manager identity; unsupported hosts suppress the acknowledgement. Use Pi 0.84.4+ (candidate tested with 1.3.0) and Node 22.19.0+.
+- Receive owner voice notes as inert original bytes with bounded untrusted metadata and existing inbox safeguards. Original-format preservation was locally verified in the prior owner workflow, not rerun here. No automatic decoding, transcription or cloud provider; audio/video notes remain unsupported.
+- Do not advertise nonfunctional `/restart` in menu/help; retain safe native refusal. Instance-following remains unimplemented.
+- Upgrade sharp to 0.35.5 and the development Pi SDK to 1.3.0 for security fixes. The published SDK removes the obsolete shrinkwrap constraint and pins patched brace-expansion 5.0.12 and undici 8.10.2. Clean-install validation and full/production audits pass; no forced fix or publication. See development status.
+
 ## 0.6.1
 
 **Published release.** Includes the busy-console routing fix, native feedback with the approved production endpoint, refreshed README and package description. Registry, artifact and decoded provenance evidence is recorded in [development status](docs/development-status.md). This release did not install or reload anything. Dependency versions are unchanged.

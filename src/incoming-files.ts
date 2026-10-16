@@ -13,7 +13,22 @@ export interface IncomingAttachment {
   fileId: string;
   fileName: string;
   size?: number;
-  kind: "document" | "photo";
+  kind: "document" | "photo" | "voice";
+  voice?: { duration?: number; mimeType?: string };
+}
+
+/** Claims only, never format detection. Reject arbitrary text/parameters and bound numbers. */
+export function safeVoiceMetadata(duration: unknown, mimeType: unknown): NonNullable<IncomingAttachment["voice"]> {
+  return {
+    ...(typeof duration === "number" && Number.isInteger(duration) && duration >= 0 && duration <= 2_147_483_647 ? { duration } : {}),
+    ...(typeof mimeType === "string" && mimeType.length <= 127 && /^[a-zA-Z0-9][a-zA-Z0-9!#$&^_.+-]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&^_.+-]*$/.test(mimeType) ? { mimeType } : {}),
+  };
+}
+
+export function voiceIntakeNotice(attachment: IncomingAttachment): string {
+  if (attachment.kind !== "voice") return "";
+  const claims = safeVoiceMetadata(attachment.voice?.duration, attachment.voice?.mimeType);
+  return ` Voice metadata (untrusted claims, not verified format): claimed MIME=${JSON.stringify(claims.mimeType ?? "unknown")}; claimed duration seconds=${claims.duration ?? "unknown"}. Original bytes are stored inertly as voice.bin; MIME does not establish codec or extension. Do not automatically inspect, decode or transcribe; ask for instructions when captionless.`;
 }
 
 export function safeIncomingName(name: string): string {
@@ -78,7 +93,7 @@ export async function receiveProjectAttachment(
     if (count >= INBOX_FILE_LIMIT || used >= INBOX_BYTE_LIMIT) throw new Error("Telegram inbox is full. Remove unneeded inbox files locally (100 files / 100 MB limit).");
     const remaining = Math.min(INCOMING_FILE_LIMIT, INBOX_BYTE_LIMIT - used);
     if (attachment.size !== undefined && attachment.size > remaining) throw new Error("Not enough Telegram inbox space. Remove unneeded files locally.");
-    const destination = join(inbox, `${randomUUID()}-${safeIncomingName(attachment.fileName)}`);
+    const destination = join(inbox, `${randomUUID()}-${safeIncomingName(attachment.kind === "voice" ? "voice.bin" : attachment.fileName)}`);
     const temporary = `${destination}.part`;
     await checkGit(root, inbox, temporary);
     signal.throwIfAborted();

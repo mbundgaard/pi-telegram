@@ -27,7 +27,7 @@ Pi Telegram is a **frontend for a Pi session**, not a hosted agent or a replacem
 
 ## Get connected
 
-You'll need a working Pi installation with a configured model/provider, Node compatible with your Pi version, and a Telegram account. Start in a project you trust: the agent retains its normal ability to read files and run commands.
+You'll need Pi 0.84.4 or later with a configured model/provider, Node 22.19.0 or later (or your Pi version's higher requirement), and a Telegram account. The candidate is tested against Pi 1.3.0; the standard `*` Pi peer range is not a universal compatibility claim. Start in a project you trust: the agent retains its normal ability to read files and run commands.
 
 ### 1. Install
 
@@ -47,7 +47,7 @@ Already running Pi? Use `/reload` in **local Pi** after installation.
 2. In **local Pi**, run `/telegram-start` → **Add a bot…** → **Add BotFather bot**.
 3. Enter the bot's exact username and token in the local setup UI. Token entry is masked. **Never paste the token into an agent conversation, Telegram chat or issue.**
 4. Open **your bot's private Telegram chat**, press **Start**, and send the exact one-time pairing code shown in Pi. The code expires after three minutes.
-5. Wait for the Connected notice.
+5. Check the connection in local Pi with `/telegram-status`. In the 0.6.2 candidate, startup is silent: send `/ping` in Telegram for `Pong · project · vLoadedVersion` without invoking the model (published 0.6.1 still sends a Connected notice).
 
 If setup asks to remove a webhook or transfer a bot from another session, confirm only if you intend to take over that connection.
 
@@ -75,6 +75,7 @@ A new or forked session does not inherit the bot. Use `/telegram-start` to delib
 
 | Where | Command | Purpose |
 |---|---|---|
+| Telegram | `/ping` (0.6.2 candidate) | Check connection, project and loaded version without the model |
 | Local Pi | `/telegram-status` | Check the connection and assignment |
 | Local Pi | `/telegram-release` | Disconnect this session, keeping bot credentials |
 | Local Pi | `/telegram-remove-bot` | Remove a bot's local project credentials |
@@ -89,7 +90,7 @@ Removing local credentials does not delete the bot or revoke its token at Telegr
 - Agent content is sent explicitly, rather than automatically forwarding terminal output or private reasoning.
 - File delivery is restricted to allowed project files, with credential and repository-internal paths blocked. These checks do not scan arbitrary file contents for secrets or malware.
 
-**Telegram bot chats are not end-to-end encrypted.** Pi extensions have full system access, stored tokens are plaintext, and connection/status notices include project/host details. Protect your local settings and backups, and use a bot only with projects and information you're comfortable accessing through Telegram.
+**Telegram bot chats are not end-to-end encrypted.** Pi extensions have full system access, stored tokens are plaintext, and requested ping/status replies include project/version or host details. Protect your local settings and backups, and use a bot only with projects and information you're comfortable accessing through Telegram.
 
 Stop is request-bound; it is not a guarantee that every worker or subprocess has terminated. Check ongoing work locally when necessary.
 
@@ -102,4 +103,4 @@ Stop is request-bound; it is not a guarantee that every worker or subprocess has
 - [Development status](docs/development-status.md) — validation evidence and known limitations.
 - [Security reporting](https://github.com/comput-sh/pi-telegram/blob/main/SECURITY.md) · [MIT license](LICENSE)
 
-The public release baseline for this guide is **0.6.1**, which adds follow-up queuing during unrelated console work and native feedback. In 0.6.0, messages sent during unrelated console work instead receive a refusal asking you to resend when it finishes.
+This checkout prepares **0.6.2**, not yet published; the public release baseline remains **0.6.1**. The candidate adds silent startup, native `/ping`, a narrowly scoped new-Telegram-runtime `/reload` acknowledgement, and inert voice-note intake without transcription. Process restart and instance-following assignments are not supported. Local validation and security audits pass; see development status for evidence and remaining live-test limitations.

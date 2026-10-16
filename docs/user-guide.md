@@ -2,7 +2,7 @@
 
 [Quick start](../README.md) · [Changelog](../CHANGELOG.md) · [Agent tools](agent-tools.md)
 
-This guide describes **0.6.1**. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
+This guide describes the **0.6.2 candidate**, not yet published; public npm remains **0.6.1**. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
 
 ## Where commands run
 
@@ -21,6 +21,14 @@ If the bot already has a webhook, Pi asks before removing it for local polling. 
 Open the new bot's private Telegram chat, press **Start**, then send the exact one-time pairing code displayed by Pi. The pairing window expires after three minutes; Escape in local Pi cancels it. Pairing instructions wrap on narrow terminals while retaining every character. If a display still clips the code, widen the terminal or cancel and retry—do not guess the code.
 
 A regular BotFather bot can be restored after reinstall by adding its username/token again. Re-adding an already paired project bot preserves its stored owner. Changing owners requires explicitly removing the local entry and pairing again; do not edit the owner field manually.
+
+### Explicit reload acknowledgement (0.6.2 candidate)
+
+An accepted private owner `/reload` can reply `Telegram reloaded · v<loadedVersion>` once the **new Telegram runtime** has loaded and verified the same connection. This does not certify that every Pi resource/UI reload step succeeded. No reply is promised after failed/expired reloads, changed assignments or delivery failures; use `/ping` to check readiness. Local reloads, ordinary startup/reconnection and updater reloads do not arm this acknowledgement. Busy/pending work and downloads refuse native reload. Use Pi 0.84.4 or later and Node 22.19.0 or later; candidate checks use Pi 1.3.0. The acknowledgement requires explicit reload lifecycle reasons and the identical session-manager object across fresh factories (verified in the examined 0.84.4/0.87.1/1.3.0 implementations). Hosts lacking these properties suppress the acknowledgement; `*` peers do not promise compatibility with every host. This is not process restart.
+
+### Silent startup (0.6.2 candidate)
+
+Startup, resume, reload and reconnection no longer send an automatic Connected message. Check local `/telegram-status`, or send `/ping` in the paired owner's private chat for `Pong · project · vLoadedVersion`. Ping is handled by the extension even while the model is busy: it does not steer, create a model request or grant file/Stop authority. It does not look up Git, hostname or IP; `/status` remains detailed. No reply is promised while disconnected. Published 0.6.1 retains its startup notice. Explicit setup confirmations, critical errors and update offers are unchanged.
 
 ## Sessions, transfers and safe recovery
 
@@ -49,12 +57,15 @@ One host-local lease protects polling/pairing. Release the old integration befor
 | Normal text | Starts a turn when idle; steers recognized Telegram-originated work while busy |
 | `!text` / `!!text` | Literal text, not shell controls |
 | `/steer text` | Explicit steering, subject to the same origin guard |
+| `/ping` | Native connection check: Pong, project and loaded package version; no model turn |
 | `/status` | Project, branch when available, host/IP and controls |
 | `stop` / `/stop` | Requests cancellation of eligible Telegram-originated work; not proof all workers stopped |
-| `/reload` | Requests Pi reload while idle |
+| `/reload` | Requests Pi reload while idle; does not replace the Pi process |
 | `/help` | Lists Telegram controls |
 
-**Routing in 0.6.1:** ordinary owner text and `/steer` during unrelated console work are accepted as a Pi follow-up turn, not steering. They run after current work finishes; no queued acknowledgement is sent and transport does not wait for the agent. Existing Telegram-originated work still receives steering; idle input still starts normally. Queue admission alone grants no Stop/file/reminder authority over console work—the trusted Telegram receipt must actually begin processing. This is a new turn in the same Pi session, not a separate session. Published 0.6.0 still uses the older refusal/resend behavior. Live activation of this change is unverified.
+Process restart is unsupported. A manually typed `/restart` safely refuses, without queuing work or shutting down. Only persistent-session assignments are supported; instance-following is not implemented.
+
+**Routing since 0.6.1:** ordinary owner text and `/steer` during unrelated console work are accepted as a Pi follow-up turn, not steering. They run after current work finishes; no queued acknowledgement is sent and transport does not wait for the agent. Existing Telegram-originated work still receives steering; idle input still starts normally. Queue admission alone grants no Stop/file/reminder authority over console work—the trusted Telegram receipt must actually begin processing. This is a new turn in the same Pi session, not a separate session. Published 0.6.0 still uses the older refusal/resend behavior. Live activation of this change is unverified.
 
 Replies are sent through explicit extension tools, not automatic forwarding of console text. Use `telegram_post` for replies/buttons, `telegram_draft` for previews and finalization, `telegram_edit` for returned message references, and `telegram_activity` for separate Working/clear control. The removed 0.5.0 `telegram_send` API has no compatibility adapter; see [migration](agent-tools.md#migration-from-050). Button selections and attachments are authenticated follow-ups, not steering commands or automatic approval.
 
@@ -72,9 +83,11 @@ Feedback is not AI-processed, does not create a request receipt or arm the reply
 
 For a requested outgoing project file, the agent can use `telegram_send_file` (up to 50 MB). `telegram_send_photo` sends inline PNG/JPEG (up to 10 MB, width+height at most 10,000, aspect ratio at most 20:1). Captions are at most 1,024 characters. Photos may be resized/compressed; ask for document delivery for original bytes. There is no automatic format conversion or metadata removal.
 
+**Voice intake (0.6.2 candidate):** private owner `message.voice` notes use the same inbox limits and cancellation safeguards as documents/photos. Original bytes are saved as a generated `*-voice.bin`, without assuming a codec from MIME. Bounded claimed MIME/duration are labeled untrusted in the agent receipt alongside the actual byte count. Captionless notes ask for instructions; there is no automatic inspection, decoding or transcription, no transcription provider, and no support for `message.audio`, video notes or other media. Original-format preservation was locally verified in the prior owner workflow (reported for this preparation); this preparation performs no live voice download, decoding, transcription or cloud upload. Candidate activation remains unverified.
+
 The paired owner may upload documents/photos privately. Captions become follow-up instructions, not Telegram commands. Without a caption the agent should ask what you want before inspection. Downloads are limited to 20 MB each and 100 files/100 MB total inbox storage, saved under `.pi/telegram-inbox/`; files stay until removed locally. Partial downloads are cleaned up. Only one download runs at a time; honor resend notices during it. Ordinary text and `/steer` remain admissible during downloads, subject to console-task protection; additional attachments and question-button selections require retry after the download.
 
-Paths stay inside the project, with credential/repository-internal and symlink/tracked-path safeguards. These checks are **not** secret-content or malware scans. Files are untrusted data, never automatically executed/extracted. Bot chats are not end-to-end encrypted. Telegram receives explicitly sent replies and attachments; connection/status notices disclose project/host information. Review uploads yourself before requesting them.
+Paths stay inside the project, with credential/repository-internal and symlink/tracked-path safeguards. These checks are **not** secret-content or malware scans. Files are untrusted data, never automatically executed/extracted. Bot chats are not end-to-end encrypted. Telegram receives explicitly sent replies and attachments; requested ping/status replies disclose project/version or host information. Review uploads yourself before requesting them.
 
 ## Updates and removal
 

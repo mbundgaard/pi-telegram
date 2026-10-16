@@ -54,10 +54,10 @@ function formatSessionMessage(
   ].join("\n");
 }
 
-export function formatSessionStartupMessage(
-  details: SessionStartupDetails,
+export function formatSessionPingMessage(
+  details: { projectName: string; version?: string },
 ): string {
-  return `Connected · ${details.projectName} · ${details.ip}${details.version ? ` · v${details.version}` : ""}`;
+  return `Pong · ${details.projectName} · v${details.version ?? "unknown"}`;
 }
 
 export function formatSessionStatusMessage(

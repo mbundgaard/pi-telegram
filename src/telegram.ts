@@ -1,19 +1,22 @@
 import { randomInt, randomBytes } from "node:crypto";
 import { validateTelegramPhoto } from "./photos.ts";
-import { INCOMING_FILE_LIMIT, type IncomingAttachment } from "./incoming-files.ts";
+import { INCOMING_FILE_LIMIT, safeVoiceMetadata, type IncomingAttachment } from "./incoming-files.ts";
 import { TELEGRAM_DOCUMENT_LIMIT, readTelegramProjectFile, validateDocumentCaption, type TelegramProjectFile } from "./files.ts";
 import { splitTelegramText } from "./messages.ts";
 import { abortable, TransportQueue, TransportQueueError } from "./transport-queue.ts";
 import { validateEmbeddedContent, type EmbeddedContent, type EmbeddedRichMessage, type PreparedEmbeddedContent } from "./rich-content.ts";
 import { FeedbackFlow, type FeedbackOptions } from "./feedback.ts";
 
-const TELEGRAM_HELP = ["Pi Telegram controls", "", "Normal message: steer active Telegram work, or start a new turn when idle", "/steer message: explicitly steer active work", "Leading ! characters are literal text", "/status: show the connected Pi session", "/feedback: optionally send product feedback after review", "/stop or stop: cancel the current Telegram task and file download", "/reload: reload Pi resources when idle"].join("\n");
+import { RESTART_BUSY, RESTART_UNSUPPORTED } from "./restart.ts";
+
+const TELEGRAM_HELP = ["Pi Telegram controls", "", "Normal message: steer active Telegram work, or start a new turn when idle", "/steer message: explicitly steer active work", "Leading ! characters are literal text", "/ping: check connection, project and loaded version", "/status: show the connected Pi session", "/feedback: optionally send product feedback after review", "/stop or stop: cancel the current Telegram task and file download", "/reload: reload Pi resources when idle"].join("\n");
 type Choices = Array<{ label: string; reply: string }>;
 interface TelegramApiEnvelope<T> { ok: boolean; result?: T; description?: string; error_code?: number }
 interface TelegramMessage {
   message_id: number; text?: string; caption?: string;
   document?: { file_id: string; file_name?: string; file_size?: number };
   photo?: Array<{ file_id: string; file_size?: number; width: number; height: number }>;
+  voice?: { file_id: string; duration: number; mime_type?: string; file_size?: number };
   chat: { id: number; type: string }; from?: { id: number; is_bot: boolean };
   reply_to_message?: TelegramMessage; forward_origin?: unknown;
 }
@@ -94,7 +97,7 @@ export class TelegramSessionConnection {
   private readonly feedback: FeedbackFlow;
 
   constructor(private readonly token: string, private readonly ownerUserId: number,
-    private readonly options: { canStop?: () => boolean; onDraftError?: () => void; botId?: number; feedback?: FeedbackOptions } = {}) {
+    private readonly options: { canStop?: () => boolean; onControlStop?: () => void; onDraftError?: () => void; ping?: () => string | undefined; restartRefusal?: () => string; botId?: number; feedback?: FeedbackOptions } = {}) {
     this.feedback = new FeedbackFlow(ownerUserId, options.botId, options.feedback, {
       request: (method, body, signal) => this.call(method, body, signal),
       effect: work => this.effect(work),
@@ -119,6 +122,11 @@ export class TelegramSessionConnection {
     return this.track((callback ? this.callbacks : this.effects).run(work, this.controller.signal)).catch(() => this.reportDraftError());
   }
   sendControlNotice(text: string): void { this.effect(signal => this.sendPlainMessage(text, signal)); }
+  sendGuardedControlNotice(text: string, valid: () => Promise<boolean>): void {
+    this.effect(async signal => {
+      if (await valid() && !signal.aborted) await this.sendPlainMessage(text, signal);
+    });
+  }
 
   /** Native typing diagnostic only; independent of drafts, Working and delivery ordering. */
   async chatAction(action: "typing", refreshSeconds = 0, external?: AbortSignal): Promise<{ action: "typing"; refreshSeconds: number }> {
@@ -552,7 +560,7 @@ export class TelegramSessionConnection {
   async configureCommandMenu(): Promise<void> {
     if (this.menuPending) return this.menuPending;
     const task = (async () => {
-      const commands = [ { command: "help", description: "Show Pi Telegram controls" }, { command: "status", description: "Show the connected Pi session" }, { command: "feedback", description: "Review and send product feedback" }, { command: "steer", description: "Steer active work: /steer message" }, { command: "stop", description: "Cancel the current Telegram task" }, { command: "reload", description: "Reload Pi resources when idle" } ];
+      const commands = [ { command: "help", description: "Show Pi Telegram controls" }, { command: "ping", description: "Check connection and loaded version" }, { command: "status", description: "Show the connected Pi session" }, { command: "feedback", description: "Review and send product feedback" }, { command: "steer", description: "Steer active work: /steer message" }, { command: "stop", description: "Cancel the current Telegram task" }, { command: "reload", description: "Reload Pi resources when idle" } ];
       try { await this.call("setMyCommands", { commands, scope: { type: "chat", chat_id: this.ownerUserId } }, AbortSignal.timeout(20_000)); }
       catch (error) {
         if (!(error instanceof TelegramApiError) || error.errorCode !== 400 || !/chat not found/i.test(error.message)) throw error;
@@ -641,9 +649,10 @@ export class TelegramSessionConnection {
     if (!stoppingFeedback && this.feedback.reply(message)) return;
     if (feedbackCommand && feedbackCommand.name === "feedback") { this.feedback.start(); return; }
     const document = message.document, photo = message.photo?.slice().sort((a, b) => a.width * a.height - b.width * b.height).at(-1);
-    if (document || photo) {
+    const voice = message.voice;
+    if (document || photo || voice) {
       if (this.incoming) { this.sendControlNotice("A file is still downloading. Please resend this attachment after it finishes."); return; }
-      const attachment: IncomingAttachment = document ? { fileId: document.file_id, fileName: document.file_name || "document.bin", size: document.file_size, kind: "document" } : { fileId: photo!.file_id, fileName: "photo.jpg", size: photo!.file_size, kind: "photo" };
+      const attachment: IncomingAttachment = document ? { fileId: document.file_id, fileName: document.file_name || "document.bin", size: document.file_size, kind: "document" } : photo ? { fileId: photo.file_id, fileName: "photo.jpg", size: photo.file_size, kind: "photo" } : { fileId: voice!.file_id, fileName: "voice.bin", size: voice!.file_size, kind: "voice", voice: safeVoiceMetadata(voice!.duration, voice!.mime_type) };
       const controller = new AbortController(), reception = { controller, task: Promise.resolve() }; this.incoming = reception;
       reception.task = this.track(Promise.resolve().then(() => {
         const signal = AbortSignal.any([controller.signal, this.controller.signal, AbortSignal.timeout(120_000)]);
@@ -652,10 +661,20 @@ export class TelegramSessionConnection {
       }).catch(() => { if (!this.stopping) this.sendControlNotice("File reception failed or was cancelled. Please resend the attachment."); }).finally(() => { if (this.incoming === reception) this.incoming = undefined; }));
       return;
     }
-    if (!message.text) { this.sendControlNotice("Send a document or photo to attach a file. Other incoming media types are not supported yet."); return; }
+    if (!message.text) { this.sendControlNotice("Send a document, photo or voice note to attach a file. Voice notes are intake only, without automatic transcription. Audio files, video notes and other incoming media types are not supported yet."); return; }
     const text = message.text.trim(), command = parseTelegramBotCommand(text);
     if (command?.name === "start" || command?.name === "help") {
       void this.configureCommandMenu().catch(() => this.reportDraftError()); this.sendControlNotice(TELEGRAM_HELP); return;
+    }
+    if (command?.name === "ping") {
+      // Native control: no model input/receipt, even while the agent is busy.
+      // Resolve inside the connection-bound effect so queued stale requests drop.
+      void this.effect(async signal => {
+        const text = this.options.ping?.();
+        signal.throwIfAborted();
+        if (text !== undefined) await this.sendPlainMessage(text, signal);
+      });
+      return;
     }
     if (command?.name === "status") {
       if (!this.statusPending) {
@@ -664,8 +683,15 @@ export class TelegramSessionConnection {
       }
       return;
     }
+    if (command?.name === "restart") {
+      // Refusal-only: never send this command to Pi/model input or queue a turn.
+      // Exact feedback replies remain literal feedback, as for other commands.
+      const refusal = this.incoming ? RESTART_BUSY : this.options.restartRefusal?.() ?? RESTART_UNSUPPORTED;
+      this.sendControlNotice(refusal);
+      return;
+    }
     if (command?.name === "reload") {
-      const result = onReload();
+      const result = this.incoming ? false : onReload();
       const notify = (ok: boolean) => { if (!ok) this.sendControlNotice("Reload is unavailable while Pi is busy. Try /reload again after the current task finishes."); };
       if (typeof result === "boolean") notify(result); else void this.track(result.then(notify)).catch(() => this.reportDraftError());
       return;
@@ -674,6 +700,7 @@ export class TelegramSessionConnection {
       const incoming = this.incoming, eligible = this.options.canStop?.() ?? false;
       // Invoke the current eligible abort before resetting origins or asynchronous effects.
       incoming?.controller.abort();
+      this.options.onControlStop?.();
       try { if (eligible) onStop(); }
       finally { this.cancelOperations(); }
       if (incoming) this.sendControlNotice("File download cancellation requested.");

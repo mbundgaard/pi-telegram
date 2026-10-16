@@ -11,6 +11,50 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## 0.6.2 candidate — audit blocker resolved, not published
+
+- Local package/lock candidate **0.6.2**; registry latest remains **0.6.1**, and 0.6.2 was unused at preparation. No publication/commit/push/tag/install into running Pi/reload/live bot testing.
+- Scope: silent startup, native ping, narrow fresh-Telegram-runtime reload acknowledgement and inert voice intake. Native restart menu/help advertising removed; typed `/restart` safely refuses. Instance-following remains unimplemented. Original-format voice preservation is reported locally verified by the preparation request; no transcription/cloud feature or new live test here.
+- Actual Pi 0.84.4/0.87.1/1.3.0 runner/reload code preserves session-manager identity and emits reload reasons. Document baseline Pi 0.84.4+, Node 22.19.0+; test SDK now 1.3.0. Standard `*` peers are not a compatibility matrix; missing reasons/changed manager suppress acknowledgement.
+- Targeted sharp 0.35.5 fixes production audit. Authorized development SDK remediation upgrades ^0.87.1 to **^1.3.0**, locked to stable published 1.3.0: its tarball has no shrinkwrap and directly pins patched brace-expansion **5.0.12** and undici **8.10.2**. Reviewed public docs/API and actual reload implementation; no source/test compatibility edits needed. Full and production audits are **zero vulnerabilities** after clean npm ci. No force fix, suppression or manual dependency patch; historical failed-audit evidence below is preserved.
+- Candidate checks: typecheck and **234 tests** passed (none skipped), pack **42 files**, diff check passed, production and full audits zero. All 42 local tarball entries byte-checked against the tree. See `docs/development-status.md` for details. Do not stage `.pi/`, `.pi-intercom/` or ignored artifacts; all pre-existing user changes remain.
+
+## Historical unreleased explicit native reload acknowledgement
+
+- Main accepted `Telegram reloaded · v<loadedVersion>` to mean only a fresh Telegram factory and ready verified same assignment, not full host reload success. Actual runtime implementation uses a bounded 30-second process-owned `globalThis` Symbol namespace, random one-use intent/generations, exact canonical project/session-manager/session/bot/owner/credential-fingerprint binding and reload lifecycle reasons. No disk/environment handoff or tokens/message contents retained.
+- Only authenticated native `/reload` arms it via a guarded one-use internal command. Busy/pending/download/update guards, Stop/disconnect invalidation, failed-initialization retirement and guarded consume-before-send prevent unrelated startup/reconnection notices or replay. Owner-approved updater reload remains outside this initial scope with `/ping` guidance.
+- `docs/reload-completion-review.md` records the accepted meaning and mechanism. Fresh typecheck/234 tests (none skipped), pack42 and diff checks passed. No live reload, installation, external messages, dependencies/version change or publication; existing changes preserved.
+
+## Unreleased silent startup and native ping
+
+- Startup/resume/reload/reconnection send no automatic Connected message. This deliberately supersedes the historical notice-before-ready invariant below. Readiness follows saved paired identity/assignment and lease checks plus successful webhook/backlog/poll initialization, not outbound message delivery. Local UI status and best-effort command menus remain.
+- Owner/private native `/ping` returns `Pong · project · vLoadedVersion` without Git/host/IP lookups or model input/receipts, including during busy work. Execution rechecks the current ready connection, epoch, session and lease; retired work cannot reply through a replacement connection. `/status` remains detailed. Feedback-bound replies remain literal feedback, as with other native commands.
+- Setup confirmations, critical errors and update offers remain; updater completion now points to `/ping`. Restart refusal-only and inert voice intake changes are preserved; instance-following remains blocked.
+- Source-only validation and review status are recorded in `docs/development-status.md`. No version bump, installation, reload, live Telegram request or publication; main review required before activation.
+
+## Instance-following assignment investigation — blocked, not implemented
+
+- Optional **Follow this Pi instance** setup mode is not implemented; existing persistent-session behavior remains unchanged. No schema/UI/runtime changes or instance-follow tests were added.
+- Examined Pi 1.0.4 public lifecycle/context/state declarations and docs do not establish process-lifetime identity/state handover across new/resume/fork/reload. Lifecycle reasons are available, but durable session entries and old contexts are not process-only authorization. No PID authorization, inherited environment token, global singleton or module-cache lifetime assumption was introduced.
+- `docs/development-status.md` records evidence, the supported-host-API blocker, required capability/CAS/project-scope design and remaining tests. A separately reviewed process-local mechanism is an alternative to investigate, not an established guarantee. Main review is required before implementation/activation. Prior voice/restart changes and historical evidence are preserved.
+
+## Unreleased incoming voice intake
+
+- Private owner `message.voice` uses the existing attachment lifecycle and inbox safeguards, saved inertly as generated `*-voice.bin`. Bounded claimed MIME/duration are labeled untrusted in the agent receipt with actual byte count; no codec assumptions, automatic inspection/decoding/transcription or new provider/dependency. Captionless voice asks for instructions; captions are not commands. Audio/video notes remain unsupported.
+- Typecheck and225 tests (none skipped), pack41 and diff checks passed. Real voice-sample testing/reload remains pending; no live downloads, installation or publication. Existing refusal-only restart work remains intact; version unchanged.
+
+## Restart re-review — decision and audit gates
+
+- Installed Pi 1.0.4 and herdr 0.9.1 were rechecked against public docs/schema and tagged herdr 0.9.1/0.9.5 source. Idle public shutdown works; canonical shell `agent start` is a practical supported route if its compatibility assumptions are explicitly accepted. Executable attestation alone is not an absolute blocker.
+- Strong same-shell/cwd/input isolation remains unavailable: launch sends quoted text plus Enter with no empty-shell-line reservation or expected process/cwd conditional operation. `docs/restart-capability-review.md` gives concrete narrowed-contract versus upstream-change options, exact evidence, tests and live recovery proposal. No functional helper or additional refusal implementation was added; main must decide the contract before implementation/activation.
+- Fresh typecheck/226 tests (none skipped), pack41 and diff checks passed. **Audit now fails:** full tree 4 vulnerabilities (1 moderate, 3 high); production-only 1 high in sharp (fixed range starts at 0.35.5). No audit fix/install/dependency change. Earlier clean audits are historical, not current release approval.
+
+## Unreleased restart boundary
+
+- Native owner/private `/restart` is menu-registered but deliberately **refusal-only**, distinct from `/reload`. Busy/pending/receipt/download/update guards and stale connection/session checks never queue work or request shutdown.
+- Read-only Pi 0.99.2 docs and herdr 0.9.1 help/schema did not establish a supported way to attest the updated `pi` executable resolved by the existing interactive shell. Herdr markers alone are not process identity proof. No detached helper, launch, session-file validation or shutdown lifecycle is enabled; prerequisites and exact limitations are in `docs/development-status.md`.
+- No live restart/pane mutation/shutdown/launch, install, reload, version bump or publication. Public 0.6.1 evidence below remains unchanged.
+
 ## Current 0.6.1 release — verified
 
 - Public npm `latest` is **0.6.1**, released from `bcdec735cb12f0e73f3bdaa2e5b19a1772bbaf02`. CI **36313665938** and Trusted Publishing **36313671023** succeeded; publication was dispatched once through the existing workflow.
@@ -99,7 +143,7 @@ Prefer native Telegram drafts, Rich Messages, commands, documents, media, and co
 
 ## Connection-notice fix included in 0.3.0
 
-- Startup sends the required Connected notice before optional menu configuration, with no startup Git-branch lookup. Menus run as bounded connection-bound background work; failure warns locally without disconnecting a healthy session.
+- Historical 0.3.0 behavior (superseded by unreleased silent startup above): startup sends the required Connected notice before optional menu configuration, with no startup Git-branch lookup. Menus run as bounded connection-bound background work; failure warns locally without disconnecting a healthy session.
 - Existing initializing connections are not reported ready until the notice is accepted. Notice failure still tears down the connection for startup recovery.
 - Regression coverage in `tests/connection-notice.test.ts`; investigation recorded in `docs/reload-notice-investigation.md`. Installed npm remains unchanged; live reload testing is pending. Included in the authorized 0.3.0 release.
 
@@ -232,7 +276,7 @@ Do not initialize Git, commit, push, tag, or publish without explicit user autho
 
 ## Telegram and AI integration
 
-- Accept only private text and supported document/photo attachments from the stored Telegram owner.
+- Accept only private text and supported document/photo/voice-note attachments from the stored Telegram owner; voice is unreleased intake only, not automatic transcription.
 - Ordinary text steers authenticated Telegram work while busy and starts normally when idle; leading `!` characters remain literal. Ordinary text and explicit `/steer` targeting unrelated busy work use a follow-up turn instead, never console steering. Queue admission does not grant request authority until its authenticated user turn begins. Buttons and attachments remain follow-ups. Do not send queued acknowledgements.
 - One-use in-memory request receipts admitted via Pi's extension input source bind output to the receiving connection. The public transport prefix is formatting guidance, not evidence of origin. Clear receipts on disconnect/session replacement.
 - Do not automatically forward assistant text or tool activity. Agent content goes through explicit `telegram_post`, `telegram_draft`, `telegram_edit` and `telegram_activity` calls, including proactive sends from console/scheduled work. Generic `telegram_send` is removed in unreleased source. Never expose hidden reasoning, prompts, raw tool arguments/results, or credentials.

@@ -20,6 +20,7 @@ import { acquireTelegramRuntimeLease } from "../src/runtime-lease.ts";
 import { stageAssignment } from "../src/assignment.ts";
 import { wrapTelegramInput } from "../src/routing.ts";
 import { FEEDBACK_ENDPOINT } from "../src/feedback-endpoint.ts";
+import { runningPackage } from "../src/updates.ts";
 
 // Exercise the registered extension events/commands, not just helper functions.
 type Handler = (event: any, ctx: any) => any;
@@ -41,6 +42,7 @@ function harness(cwd: string, sessionId = "main") {
   const sent: string[] = [];
   const deliveries: Array<{ deliverAs: string }> = [];
   const notices: string[] = [];
+  const statuses: Array<string | undefined> = [];
   let prompts = 0;
   let idle = true;
   let aborts = 0;
@@ -57,7 +59,7 @@ function harness(cwd: string, sessionId = "main") {
     },
     ui: {
       notify: (message: string) => notices.push(message),
-      setStatus: () => {},
+      setStatus: (_key: string, value: string | undefined) => { statuses.push(value); },
       theme: { fg: (_color: string, text: string) => text },
       select: async (_title: string, options: string[]) => {
         prompts++;
@@ -98,6 +100,7 @@ function harness(cwd: string, sessionId = "main") {
     sent,
     deliveries,
     notices,
+    statuses,
     choices,
     inputs,
     emit,
@@ -572,17 +575,18 @@ test("shutdown cancels an outstanding setup before it can assign or connect", as
     assert.equal(network.calls.length, 0);
   }));
 
-test("busy owner attachments remain follow-ups without queued notices; captions are not commands", async () =>
+for (const media of [{ document: { file_id: "doc", file_name: "report.txt", file_size: 5 } }, { voice: { file_id: "voice-private-id", duration: 3, mime_type: "audio/mpeg", file_size: 5 } }])
+test(`busy owner ${"voice" in media ? "voice" : "document"} remains a follow-up; captions are not commands`, async () =>
   fixture(async (cwd, network) => {
     await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
     const pi = harness(cwd);
     pi.setIdle(false);
     try {
       network.inbound.push({ update_id: 1, message: { message_id: 1,
-        caption: "/stop", document: { file_id: "doc", file_name: "report.txt", file_size: 5 },
+        caption: "/stop", ...media,
         chat: { id: 42, type: "private" }, from: { id: 99, is_bot: false },
       } }, { update_id: 2, message: { message_id: 2,
-        caption: "/stop", document: { file_id: "doc", file_name: "report.txt", file_size: 5 },
+        caption: "/stop", ...media,
         chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
       } });
       await pi.emit("session_start");
@@ -590,6 +594,12 @@ test("busy owner attachments remain follow-ups without queued notices; captions 
       assert.equal(pi.sent.length, 1);
       assert.equal(network.calls.filter(method => method === "getFile").length, 1);
       assert.match(pi.sent[0]!, /User caption:\n\/stop/);
+      if ("voice" in media) {
+        assert.match(pi.sent[0]!, /voice.bin/);
+        assert.match(pi.sent[0]!, /untrusted claims/);
+        assert.match(pi.sent[0]!, /audio\/mpeg/);
+        assert.doesNotMatch(pi.sent[0]!, /voice-private-id/);
+      }
       assert.match(pi.sent[0]!, /\.pi\/telegram-inbox\//);
       assert.match(pi.sent[0]!, /untrusted data/);
       assert.ok(network.messages.includes("Downloading attachment…"));
@@ -635,11 +645,11 @@ test("attachment download and admission do not await a stalled Downloading notic
     } finally { release?.(); await pi.emit("session_shutdown"); }
   }));
 
-test("captionless photos reach the agent with an ask-before-inspecting instruction", async () =>
+for (const voice of [false, true]) test(`captionless ${voice ? "voice" : "photo"} reaches the agent with ask-before-inspecting instruction`, async () =>
   fixture(async (cwd, network) => {
     await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
     network.inbound.push({ update_id: 1, message: { message_id: 1,
-      photo: [{ file_id: "small", width: 10, height: 10, file_size: 5 }, { file_id: "large", width: 100, height: 100, file_size: 5 }],
+      ...(voice ? { voice: { file_id: "large", duration: 2, file_size: 5 } } : { photo: [{ file_id: "small", width: 10, height: 10, file_size: 5 }, { file_id: "large", width: 100, height: 100, file_size: 5 }] }),
       chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
     } });
     const original = globalThis.fetch;
@@ -654,16 +664,20 @@ test("captionless photos reach the agent with an ask-before-inspecting instructi
       for (let i = 0; i < 100 && !pi.sent.length; i++) await new Promise(r => setTimeout(r, 20));
       assert.equal(requested, "large");
       assert.equal(pi.sent.length, 1);
-      assert.match(pi.sent[0]!, /Received Telegram photo/);
+      assert.match(pi.sent[0]!, voice ? /Received Telegram voice/ : /Received Telegram photo/);
+      if (voice) {
+        assert.match(pi.sent[0]!, /claimed MIME="unknown"/);
+        assert.match(pi.sent[0]!, /Do not automatically inspect, decode or transcribe/);
+      }
       assert.match(pi.sent[0]!, /ask what they want done; do not inspect/);
     } finally { await pi.emit("session_shutdown"); }
   }));
 
-test("stop can cancel an in-flight attachment without admitting a request", async () =>
+for (const voice of [false, true]) test(`stop cancels in-flight ${voice ? "voice" : "document"} without admitting a request`, async () =>
   fixture(async (cwd, network) => {
     await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
     network.inbound.push({ update_id: 1, message: { message_id: 1,
-      document: { file_id: "doc", file_name: "log.txt" },
+      ...(voice ? { voice: { file_id: "voice", duration: 2 } } : { document: { file_id: "doc", file_name: "log.txt" } }),
       chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
     } }, { update_id: 2, message: { message_id: 2, text: "/stop",
       chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
@@ -677,6 +691,33 @@ test("stop can cancel an in-flight attachment without admitting a request", asyn
     } finally { await pi.emit("session_shutdown"); }
   }));
 
+test("native ping answers while the model is busy without creating model input or file authority", async () =>
+  fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const original = globalThis.fetch;
+    let deliver!: () => void;
+    const gate = new Promise<void>(resolve => { deliver = resolve; });
+    globalThis.fetch = (async (url, init) => {
+      if (String(url).endsWith("/getUpdates") && JSON.parse(String(init?.body)).offset !== -1) await gate;
+      return original(url, init);
+    }) as typeof fetch;
+    const pi = harness(cwd);
+    pi.setIdle(false);
+    try {
+      await pi.emit("session_start");
+      assert.deepEqual(network.messages, []);
+      network.inbound.push({ update_id: 1, message: { message_id: 1, text: "/ping",
+        chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false } } });
+      deliver();
+      for (let i = 0; i < 100 && !network.messages.length; i++) await new Promise(resolve => setTimeout(resolve, 10));
+      assert.equal(network.messages.length, 1);
+      assert.match(network.messages[0]!, /^Pong · pi-telegram-lifecycle-.* · v\d+\.\d+\.\d+$/);
+      assert.deepEqual(pi.sent, []);
+      assert.equal(pi.aborts(), 0);
+      await assert.rejects(pi.tool("telegram_send_file", { path: "README.md" }), /request|Telegram/i);
+    } finally { deliver(); await pi.emit("session_shutdown"); }
+  }));
+
 test("startup recovers from a transient failure and reconnects across repeated reloads", async () =>
   fixture(async (cwd, network) => {
     await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
@@ -685,14 +726,15 @@ test("startup recovers from a transient failure and reconnects across repeated r
       network.failToken = "test-111";
       await pi.emit("session_start");
       network.failToken = undefined;
-      for (let i = 0; i < 200 && !network.messages.some(text => text.startsWith("Connected")); i++)
+      for (let i = 0; i < 200 && !pi.statuses.includes("telegram: @Example111Bot"); i++)
         await new Promise(resolve => setTimeout(resolve, 20));
-      assert.ok(network.messages.some(text => text.startsWith("Connected")));
+      assert.ok(pi.statuses.includes("telegram: @Example111Bot"));
+      assert.deepEqual(network.messages, []);
       for (let i = 0; i < 3; i++) {
         await pi.emit("session_shutdown");
-        const count = network.messages.filter(text => text.startsWith("Connected")).length;
         await pi.emit("session_start");
-        assert.equal(network.messages.filter(text => text.startsWith("Connected")).length, count + 1);
+        assert.equal(pi.statuses.at(-1), "telegram: @Example111Bot");
+        assert.deepEqual(network.messages, []);
         assert.equal((await loadProjectSettings(cwd))?.bots[0]?.sessionId, "main");
       }
     } finally { await pi.emit("session_shutdown"); }
@@ -809,6 +851,7 @@ test("inbound requests are delivered without automatic replies; telegram_post re
     const pi = harness(cwd);
     try {
       await pi.emit("session_start");
+      for (let i = 0; i < 100 && !pi.sent.length; i++) await new Promise(resolve => setTimeout(resolve, 10));
       assert.equal(pi.sent.length, 1);
       const text = pi.sent[0]!;
       await pi.emit("input", { text, source: "extension" });
@@ -1032,4 +1075,107 @@ test("a forged transport prefix does not send local assistant output", async () 
     } finally {
       await pi.emit("session_shutdown");
     }
+  }));
+
+test("authenticated native reload acknowledges only a fresh ready factory, once", async () =>
+  fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const original = globalThis.fetch;
+    let deliver!: () => void;
+    const gate = new Promise<void>(resolve => { deliver = resolve; });
+    globalThis.fetch = (async (url, init) => {
+      if (String(url).endsWith("/getUpdates") && JSON.parse(String(init?.body)).offset !== -1) await gate;
+      return original(url, init);
+    }) as typeof fetch;
+    const old = harness(cwd);
+    let fresh: ReturnType<typeof harness> | undefined;
+    (old.ctx as any).reload = async () => {
+      await old.emit("session_shutdown", { reason: "reload" });
+      fresh = harness(cwd);
+      // Pi retains this session manager across resource reload, not new sessions.
+      (fresh.ctx as any).sessionManager = old.ctx.sessionManager;
+      await fresh.emit("session_start", { reason: "reload" });
+    };
+    try {
+      await old.emit("session_start", { reason: "startup" });
+      await old.command("pi-telegram-reload"); // Internal command alone grants no authority.
+      assert.equal(fresh, undefined);
+      network.inbound.push({ update_id: 1, message: { message_id: 1, text: "/reload",
+        chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false } } });
+      deliver();
+      for (let i = 0; i < 100 && !old.sent.length; i++) await new Promise(r => setTimeout(r, 10));
+      assert.deepEqual(old.sent, ["/pi-telegram-reload"]);
+      await old.command("pi-telegram-reload");
+      for (let i = 0; i < 100 && !network.messages.some(m => m.startsWith("Telegram reloaded")); i++) await new Promise(r => setTimeout(r, 10));
+      assert.deepEqual(network.messages.filter(m => m.startsWith("Telegram reloaded")), [`Telegram reloaded · v${runningPackage().version}`]);
+      await fresh!.emit("session_shutdown", { reason: "reload" });
+      await fresh!.emit("session_start", { reason: "reload" });
+      await fresh!.command("pi-telegram-reload");
+      assert.equal(network.messages.filter(m => m.startsWith("Telegram reloaded")).length, 1);
+    } finally { await (fresh ?? old).emit("session_shutdown", { reason: "quit" }); }
+  }));
+
+for (const change of ["owner", "credential", "manager", "reason"] as const) test(`fresh reload factory rejects changed ${change}`, async () =>
+  fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const original = globalThis.fetch;
+    let deliver!: () => void;
+    const gate = new Promise<void>(resolve => { deliver = resolve; });
+    globalThis.fetch = (async (url, init) => {
+      if (String(url).endsWith("/getUpdates") && JSON.parse(String(init?.body)).offset !== -1) await gate;
+      return original(url, init);
+    }) as typeof fetch;
+    const old = harness(cwd);
+    let fresh: ReturnType<typeof harness> | undefined;
+    (old.ctx as any).reload = async () => {
+      await old.emit("session_shutdown", { reason: "reload" });
+      const updated = bot();
+      if (change === "owner") updated.ownerUserId = "43";
+      if (change === "credential") updated.token = "replacement-test-token";
+      await saveProjectSettings(cwd, { version: 2, bots: [updated] });
+      fresh = harness(cwd);
+      if (change !== "manager") (fresh.ctx as any).sessionManager = old.ctx.sessionManager;
+      await fresh.emit("session_start", { reason: change === "reason" ? "resume" : "reload" });
+    };
+    try {
+      await old.emit("session_start", { reason: "startup" });
+      network.inbound.push({ update_id: 1, message: { message_id: 1, text: "/reload",
+        chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false } } });
+      deliver();
+      for (let i = 0; i < 100 && !old.sent.length; i++) await new Promise(r => setTimeout(r, 10));
+      assert.equal(old.sent.length, 1);
+      await old.command("pi-telegram-reload");
+      // Let the guarded outbound identity read settle, then drain effects at shutdown.
+      await new Promise(r => setTimeout(r, 30));
+      await fresh!.emit("session_shutdown", { reason: "quit" });
+      assert.equal(network.messages.some(m => m.startsWith("Telegram reloaded")), false);
+    } finally { deliver(); await (fresh ?? old).emit("session_shutdown", { reason: "quit" }); }
+  }));
+
+test("native reload failure in the original runtime never acknowledges or authorizes a retry", async () =>
+  fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const original = globalThis.fetch;
+    let deliver!: () => void;
+    const gate = new Promise<void>(resolve => { deliver = resolve; });
+    globalThis.fetch = (async (url, init) => {
+      if (String(url).endsWith("/getUpdates") && JSON.parse(String(init?.body)).offset !== -1) await gate;
+      return original(url, init);
+    }) as typeof fetch;
+    const pi = harness(cwd);
+    let attempts = 0;
+    (pi.ctx as any).reload = async () => { attempts++; throw new Error("reload refused"); };
+    try {
+      await pi.emit("session_start", { reason: "startup" });
+      network.inbound.push({ update_id: 1, message: { message_id: 1, text: "/reload",
+        chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false } } });
+      deliver();
+      for (let i = 0; i < 100 && !pi.sent.length; i++) await new Promise(r => setTimeout(r, 10));
+      assert.equal(pi.sent.length, 1);
+      await assert.rejects(pi.command("pi-telegram-reload"));
+      await pi.command("pi-telegram-reload");
+      assert.equal(attempts, 1);
+      await pi.emit("session_start", { reason: "reload" });
+      assert.equal(network.messages.some(m => m.startsWith("Telegram reloaded")), false);
+    } finally { await pi.emit("session_shutdown", { reason: "quit" }); }
   }));

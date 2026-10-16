@@ -10,11 +10,13 @@ import {
   type TelegramInboundMessage,
 } from "./telegram.ts";
 import {
-  formatSessionStartupMessage,
+  formatSessionPingMessage,
   formatSessionStatusMessage,
   getGitBranch,
   getHostIdentity,
 } from "./host.ts";
+
+import { RESTART_UNSUPPORTED } from "./restart.ts";
 
 export class ConnectionManager {
   connection?: TelegramSessionConnection;
@@ -23,7 +25,7 @@ export class ConnectionManager {
   private timer?: NodeJS.Timeout;
   private epoch = 0;
   private ready = false;
-  get isReady(): boolean { return this.ready && !!this.connection; }
+  get isReady(): boolean { return this.ready && !!this.connection && !!this.lease && !this.lease.signal.aborted; }
   constructor(
     private readonly callbacks: {
       input(
@@ -35,6 +37,8 @@ export class ConnectionManager {
       stopTask(): void;
       disconnected(): void;
       reload(ctx: ExtensionContext): boolean;
+      cancelReload?(): void;
+      restartRefusal?(ctx: ExtensionContext): string;
       version?: string;
       feedbackEndpoint?: string;
       connected?(connection: TelegramSessionConnection, ctx: ExtensionContext): void;
@@ -74,7 +78,7 @@ export class ConnectionManager {
         this.bot.sessionId === sessionId &&
         this.bot.token === bot.token
       )
-        return this.ready; // Polling may exist before the connection notice is accepted.
+        return this.ready; // Polling may exist while initialization is still pending.
       throw new Error("This session already has a connected Telegram bot.");
     }
     const epoch = ++this.epoch;
@@ -109,6 +113,17 @@ export class ConnectionManager {
         ...(this.callbacks.feedbackEndpoint === undefined ? {} : {
           feedback: { endpoint: this.callbacks.feedbackEndpoint, version: this.callbacks.version ?? "unknown" },
         }),
+        ping: () => {
+          if (!this.isReady || this.connection !== current || this.epoch !== epoch ||
+              lease.signal.aborted || sessionId !== ctx.sessionManager.getSessionId()) return undefined;
+          return formatSessionPingMessage({ projectName: basename(resolve(ctx.cwd)), version: this.callbacks.version });
+        },
+        restartRefusal: () => {
+          if (!this.isReady || this.connection !== current || sessionId !== ctx.sessionManager.getSessionId())
+            return "Restart refused: this Telegram connection is no longer ready. Nothing was scheduled.";
+          return this.callbacks.restartRefusal?.(ctx) ?? RESTART_UNSUPPORTED;
+        },
+        onControlStop: () => { if (this.connection === current) this.callbacks.cancelReload?.(); },
         canStop: () =>
           this.connection === current && this.callbacks.canStop(current),
         onDraftError: () =>
@@ -156,7 +171,8 @@ export class ConnectionManager {
             branch: await getGitBranch(ctx.cwd),
             ...getHostIdentity(),
           }),
-        () => this.connection === current && this.callbacks.reload(ctx),
+        () => this.isReady && this.connection === current && this.epoch === epoch &&
+          sessionId === ctx.sessionManager.getSessionId() && this.callbacks.reload(ctx),
       );
       // Attach immediately: menu/network work must not leave a rejected poll unhandled.
       void current.completion
@@ -212,21 +228,8 @@ export class ConnectionManager {
         );
       }, 1_000);
       this.timer.unref?.();
-      // Required notice first: optional menu calls must never consume the
-      // startup deadline while polling is already active but invisible.
-      await current
-        .sendPlainMessage(
-          formatSessionStartupMessage({
-            version: this.callbacks.version,
-            projectName: basename(resolve(ctx.cwd)),
-            ...getHostIdentity(),
-          }),
-        )
-        .catch(() => {
-          // Do not claim a successful reconnect when the owner never receives
-          // its connection notice. Startup recovery will retry this assignment.
-          throw new Error("Telegram connection notice could not be delivered.");
-        });
+      // Readiness is local initialization under the verified assignment/lease,
+      // not delivery of an unsolicited success notice. Startup stays silent.
       check();
       this.ready = true;
       ctx.ui.setStatus(

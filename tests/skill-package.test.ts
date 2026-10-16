@@ -126,7 +126,7 @@ test("npm pack JSON parser accepts array and name-keyed formats and rejects inva
 test("npm pack includes all skill files and no private/development directories", { skip: process.env.npm_execpath ? false : "Run via npm test to inspect npm's actual pack list" }, async () => {
   const stdout = execFileSync(process.execPath, [process.env.npm_execpath!, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8" });
   const files = packFiles(stdout, "@comput/pi-telegram");
-  for (const file of await skillFiles()) assert.ok(files.includes(file), `missing package file ${file}`);
+  for (const file of [...await skillFiles(), "src/reload-intent.ts", "src/restart.ts"]) assert.ok(files.includes(file), `missing package file ${file}`);
   const docs = ["docs/user-guide.md", "docs/agent-tools.md", "docs/development-status.md"];
   for (const file of docs) assert.ok(files.includes(file), `missing offline guide ${file}`);
   for (const file of files.filter((path: string) => path.startsWith("docs/"))) assert.ok(docs.includes(file), `unexpected internal documentation ${file}`);
