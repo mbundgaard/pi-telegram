@@ -24,6 +24,7 @@ import { restartRefusal } from "./restart.ts";
 import { realpath } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { reloadIntents } from "./reload-intent.ts";
+import { registerCompactionNotices } from "./compaction-notices.ts";
 
 const RELEASE_NOTES_URL = "https://github.com/mbundgaard/pi-telegram/blob/main/CHANGELOG.md";
 
@@ -132,6 +133,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
       })().catch(() => ctx.ui.notify("Telegram update notification could not be delivered.", "warning"));
     },
     disconnected: () => {
+      compactionNotices.reset();
       pendingReload = undefined;
       if (armedReload && !transferringReload) reloads.cancel(armedReload);
       if (claimedReload) reloads.discard(claimedReload);
@@ -165,6 +167,16 @@ export default function piTelegram(pi: ExtensionAPI): void {
       });
       return true;
     },
+  });
+  const compactionNotices = registerCompactionNotices(pi, ctx =>
+    !lifetime.signal.aborted && connections.isReady && activeContext?.sessionManager === ctx.sessionManager &&
+      activeContext.cwd === ctx.cwd && connections.bot?.sessionId === ctx.sessionManager.getSessionId()
+      ? connections.connection : undefined,
+  async (connection, ctx) => {
+    const saved = await loadProjectSettings(ctx.cwd);
+    const bot = saved && findSessionBot(saved, ctx.sessionManager.getSessionId());
+    return !!bot && connections.isReady && connections.connection === connection &&
+      bot.id === connections.bot?.id && bot.token === connections.bot?.token && bot.ownerUserId === connections.bot?.ownerUserId;
   });
   const flows = new SetupFlows(connections);
   const retryConnection = (ctx: ExtensionContext, signal: AbortSignal) => {

@@ -188,6 +188,31 @@ async function fixture(
   }
 }
 
+test("registered compaction hooks notify while busy without model input and recheck disk assignment", async () =>
+  fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const pi = harness(cwd);
+    try {
+      await pi.emit("session_start");
+      assert.deepEqual(network.messages, [], "startup remains silent");
+      pi.setIdle(false);
+      await pi.emit("session_before_compact", { signal: new AbortController().signal, reason: "threshold" });
+      await pi.emit("session_compact", { compactionEntry: { summary: "private dummy summary" } });
+      for (let i = 0; i < 100 && network.messages.length < 2; i++) await new Promise(resolve => setTimeout(resolve, 10));
+      assert.deepEqual(network.messages, [
+        "Context compaction starting. Pi may pause while it summarizes older context.", "Context compaction completed.",
+      ]);
+      assert.deepEqual(pi.sent, []);
+      assert.equal(pi.aborts(), 0);
+      await saveProjectSettings(cwd, { version: 2, bots: [bot("111", null)] });
+      await pi.emit("session_before_compact", { signal: new AbortController().signal, reason: "manual" });
+      await pi.emit("session_compact_failed", { aborted: true, errorMessage: "private dummy error" });
+      await new Promise(resolve => setTimeout(resolve, 50));
+      assert.equal(network.messages.length, 2, "retired disk assignment cannot receive notices before monitoring catches up");
+      assert.deepEqual(pi.sent, []);
+    } finally { await pi.emit("session_shutdown"); }
+  }));
+
 test("production native feedback opens a prompt without submitting or entering the agent", async () =>
   fixture(async (cwd, network) => {
     assert.equal(FEEDBACK_ENDPOINT, "https://feedback.comput.sh/", "owner-approved root destination");

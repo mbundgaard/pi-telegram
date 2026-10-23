@@ -12,7 +12,7 @@ Same session. Same project context. Another way to work with Pi.
 - **Send context from your phone.** Share a screenshot or document with instructions for the agent.
 - **Get useful answers back.** Receive formatted replies, code, files and images—not just a notification telling you to check the terminal.
 - **Make choices in chat.** The agent can offer buttons for questions and next steps.
-- **See progress when it matters.** Explicit progress messages, temporary answer previews and a Working indicator help the agent keep you informed.
+- **See progress when it matters.** Explicit progress messages, temporary answer previews and a Working indicator help the agent keep you informed. Version 0.6.4 adds native context-compaction notices on hosts exposing the corresponding hooks; early pauses may remain silent.
 - **Return to the same session.** Resume your persistent Pi session locally and its assigned bot reconnects.
 
 For example:

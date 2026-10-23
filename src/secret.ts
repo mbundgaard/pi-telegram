@@ -33,10 +33,18 @@ export class SecretFlow {
     return !!reply && !reply.forward_origin && reply.chat.id === this.owner && reply.chat.type === "private" && reply.from?.id === this.botId && reply.from?.is_bot === true &&
       (this.known.has(reply.message_id) || (marker.test(reply.text ?? "") && promptPattern.test(reply.text ?? "")) || filenamePattern.test(reply.text ?? ""));
   }
-  start(name: string | undefined, blocked: boolean): void {
+  start(name: string | undefined, blocked: false | "download" | "feedback" | "question"): void {
     if (this.flow) { this.io.notice("Secret intake is already active. Reply to its prompt or use /cancel."); return; }
     if (name !== undefined && !validSecretName(name)) { this.io.notice("Invalid secret filename. Use /secret to choose a simple ASCII basename; never include secret contents in the command."); return; }
-    if (blocked || !this.options || !this.options.current() || !this.botId) { this.io.notice("Secret intake is unavailable while another native flow or download is active, or this connection is not ready."); return; }
+    if (!this.options || !this.options.current() || !this.botId) { this.io.notice("Secret intake is unavailable because this connection is not ready. Check /ping and the local Pi connection status; do not send secret contents."); return; }
+    if (blocked) {
+      const reason = {
+        download: "a file download is active. Wait for it to finish, then retry /secret.",
+        feedback: "feedback is active. Finish it or use /cancel, then retry /secret.",
+        question: "an agent question is awaiting an answer. Answer it with its buttons or ordinary non-sensitive text, or wait for it to expire, then retry /secret. /cancel does not dismiss agent questions.",
+      }[blocked];
+      this.io.notice(`Secret intake is unavailable because ${reason}`); return;
+    }
     const f: Flow = { expires: Date.now() + SECRET_TTL, timer: undefined!, controller: new AbortController(), stage: name === undefined ? "filename" : "content", phase: "preparing" };
     this.flow = f;
     f.timer = setTimeout(() => { if (this.flow === f) this.cancel(); }, SECRET_TTL); f.timer.unref?.();

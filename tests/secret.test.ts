@@ -8,6 +8,8 @@ import { TelegramSessionConnection } from "../src/telegram.ts";
 import { prepareSecretTarget, commitSecret, validSecretName, SECRET_DIRECTORY } from "../src/secret-files.ts";
 import { SecretFlow, SECRET_TTL } from "../src/secret.ts";
 import { resolveTelegramProjectFile } from "../src/files.ts";
+import { registerResponseRouting } from "../src/request-routing.ts";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const flush = async () => { for (let i = 0; i < 10; i++) await new Promise<void>(r => setImmediate(r)); };
 const wait = async (predicate: () => boolean) => { for (let i = 0; i < 300 && !predicate(); i++) await new Promise(r => setTimeout(r, 5)); assert.ok(predicate(), "condition reached"); };
@@ -49,6 +51,55 @@ test("secret success preserves exact UTF8, deletes only original IDs after write
   await link(file, join(f.cwd, "hard.txt")); await assert.rejects(resolveTelegramProjectFile(f.cwd, "hard.txt"), /hard-linked/);
 }));
 
+test("successive direct and menu saves remain available before, during and after metadata turns", async () => fixture(async f => {
+  const handlers = new Map<string, Function>();
+  const route = registerResponseRouting({ on: (name: string, handler: Function) => handlers.set(name, handler) } as unknown as ExtensionAPI, () => f.connection);
+  for (let i = 0; i < 6; i++) {
+    const name = `repeat-${i}.txt`;
+    if (i % 2) {
+      f.dispatch({ text: "/secret" });
+      await wait(() => (f.connection as any).secret.flow?.phase === "awaiting");
+      f.dispatch({ text: name, reply_to_message: f.bot() });
+      await wait(() => (f.connection as any).secret.flow?.stage === "content" && (f.connection as any).secret.flow?.phase === "awaiting");
+    } else await f.ready(name);
+    f.dispatch({ text: `DUMMY-repeat-${i}`, reply_to_message: f.bot() });
+    await wait(() => f.inputs.length === i + 1);
+    assert.equal((f.connection as any).secret.active, false);
+    assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, name), "utf8"), `DUMMY-repeat-${i}`);
+    const text = route.origins.enqueue(f.inputs[i].text, f.connection);
+    await handlers.get("input")!({ text, source: "extension" });
+    if (i % 3 !== 0) {
+      await handlers.get("message_start")!({ message: { role: "user", content: text } });
+      assert.equal(route.destination(), f.connection);
+      if (i % 3 === 2) {
+        await handlers.get("agent_settled")!({});
+        assert.equal(route.destination(), undefined);
+      }
+    }
+  }
+  route.reset();
+  assert.ok(!JSON.stringify(f.inputs).includes("DUMMY-repeat"));
+  assert.ok(!JSON.stringify(f.requests).includes("DUMMY-repeat"));
+}));
+
+test("a question after a successful save blocks repeats until answered, not until metadata settles", async () => fixture(async f => {
+  const p = await f.ready();
+  f.dispatch({ text: "DUMMY-first", reply_to_message: p });
+  await wait(() => f.inputs.length === 1);
+  await f.connection.post("What next?", [{ label: "Continue", reply: "Continue" }]);
+  for (const text of ["/secret", "/secret next.txt", "/cancel", "/secret next.txt"]) f.dispatch({ text });
+  await flush();
+  assert.equal(f.requests.filter((r: any) => r.body.reply_markup?.force_reply).length, 1);
+  assert.ok(f.requests.some((r: any) => r.body.text?.includes("an agent question is awaiting an answer")));
+  assert.ok(f.requests.some((r: any) => r.body.text?.includes("/cancel does not dismiss agent questions")));
+  assert.equal(f.inputs.length, 1, "refusals never become model input");
+  f.dispatch({ text: "Please continue" });
+  await f.ready("next.txt");
+  f.dispatch({ text: "DUMMY-second", reply_to_message: f.bot() });
+  await wait(() => f.inputs.length === 3);
+  assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "next.txt"), "utf8"), "DUMMY-second");
+}));
+
 test("malformed invalid and existing shortcut filenames never prompt or reach model", async () => fixture(async f => {
   for (const text of ["/secret@",  "/secret: DUMMY", "/secret ../x", "/secret a/b", "/secret a\\b", "/secret CON.txt", "/secret config", "/secret .git", "/secret a b", "/secret " + "x".repeat(65)]) f.dispatch({ text });
   await flush(); assert.equal(f.prompt(), undefined); assert.equal(f.inputs.length, 0);
@@ -72,6 +123,7 @@ test("cancel and established global Stop override exact reply data; all stale pr
   for (const command of ["/cancel", "/stop", "stop"]) await fixture(async f => {
     const p = await f.ready(); f.dispatch({ text: command, reply_to_message: p }); await flush();
     assert.equal((f.connection as any).secret.active, false);
+    await f.ready("after-cancel.txt"); f.dispatch({ text: "/cancel" });
     f.dispatch({ text: "DUMMY-late", reply_to_message: p }); f.dispatch({ document: { file_id: "never" }, caption: "DUMMY-late", reply_to_message: p });
     await flush(); assert.equal(f.inputs.length, 0); assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 0);
     await assert.rejects(stat(join(f.cwd, SECRET_DIRECTORY, "dummy.txt")));
@@ -129,6 +181,10 @@ test("deletion failure warns without secret or retry; write collision does not d
     assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 2);
     assert.ok(f.requests.some((r: any) => r.body.text?.includes("Remove the secret reply and prompt manually")));
     assert.ok(!JSON.stringify(f.requests).includes("DUMMY-"));
+    await f.ready("after-deletion-failure.txt");
+    f.dispatch({ text: "DUMMY-next", reply_to_message: f.bot() });
+    await wait(() => f.inputs.length === 2);
+    assert.equal((f.connection as any).secret.active, false);
   });
   await fixture(async f => {
     const p = await f.ready(); await writeFile(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), "winner");
@@ -136,12 +192,16 @@ test("deletion failure warns without secret or retry; write collision does not d
     assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), "utf8"), "winner");
     assert.equal(f.inputs.length, 0); assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 0);
     assert.ok(!f.requests.some((r: any) => r.body.text?.startsWith("Saved ")));
+    await f.ready("after-collision.txt");
+    f.dispatch({ text: "DUMMY-recovered", reply_to_message: f.bot() });
+    await wait(() => f.inputs.length === 1);
   });
 });
 
 test("download and agent question refuse secret collection; callback cannot enter model while active", async () => fixture(async f => {
   (f.connection as any).incoming = { controller: new AbortController(), task: Promise.resolve() };
   f.dispatch({ text: "/secret dummy.txt" }); await flush(); assert.equal(f.prompt(), undefined);
+  assert.ok(f.requests.some((r: any) => r.body.text?.includes("a file download is active")));
   (f.connection as any).incoming = undefined;
   await f.connection.post("Question", [{ label: "Yes", reply: "yes" }]);
   f.dispatch({ text: "/secret dummy.txt" }); await flush(); assert.equal(f.prompt(), undefined);
@@ -188,6 +248,10 @@ test("post-commit cancellation preserves file but suppresses metadata and furthe
   assert.equal(f.inputs.length, 0);
   assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 1);
   assert.ok(!f.requests.some((r: any) => r.body.text?.startsWith("Saved ")));
+  f.hook(async () => {});
+  await f.ready("after-postcommit-cancel.txt");
+  f.dispatch({ text: "DUMMY-next", reply_to_message: f.bot() });
+  await wait(() => f.inputs.length === 1);
 }));
 
 test("retired intake rejects recognizable prompt replies but does not redact ordinary chat", async () => fixture(async f => {
@@ -203,6 +267,16 @@ test("native feedback must be cancelled before secret collection", async () => f
   Object.defineProperty((f.connection as any).feedback, "active", { value: true, configurable: true });
   f.dispatch({ text: "/secret dummy.txt" }); await flush();
   assert.equal(f.prompt(), undefined); assert.equal(f.inputs.length, 0);
+  assert.ok(f.requests.some((r: any) => r.body.text?.includes("feedback is active. Finish it or use /cancel")));
+}));
+
+test("unready connection refuses both commands without prompting and can recover", async () => fixture(async f => {
+  f.current(false);
+  for (const text of ["/secret", "/secret dummy.txt"]) f.dispatch({ text });
+  await flush();
+  assert.equal(f.prompt(), undefined); assert.equal(f.inputs.length, 0);
+  assert.equal(f.requests.filter((r: any) => r.body.text?.includes("this connection is not ready. Check /ping")).length, 2);
+  f.current(true); await f.ready();
 }));
 
 test("bare menu command requires filename then a distinct content reply; duplicates stay fenced", async () => fixture(async f => {

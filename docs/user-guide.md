@@ -2,7 +2,7 @@
 
 [Quick start](../README.md) · [Changelog](../CHANGELOG.md) · [Agent tools](agent-tools.md)
 
-This guide describes **0.6.3**. Publication evidence is recorded in [development status](development-status.md); installation and loaded-runtime support are separate. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
+This guide describes **0.6.4**. Publication evidence is recorded in [development status](development-status.md); installation and loaded-runtime support are separate. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
 
 ## Native secret files (0.6.3)
 
@@ -12,7 +12,7 @@ In the paired owner's private bot chat, select `/secret` from the menu or send i
 
 Reply **directly to the bot's “Ready to save filename” prompt** within five minutes of starting intake. This is one fixed deadline for both stages and all corrections, not five minutes per prompt. Nonempty text is stored exactly as UTF-8, including whitespace, up to 16,384 bytes. Empty text, media, forwarded data and edits are not accepted. No preview is produced. `/cancel`, `/stop` (including their native command forms/arguments), and plain `stop` are reserved even in exact replies: they cancel rather than become file contents. Other exact content-prompt reply text is literal data, not an executable command. Filename-prompt replies are only filenames and never become file contents; once accepted, old filename-prompt replies are rejected.
 
-During intake, unmatched messages and other controls are blocked rather than sent to the model. Finish/cancel feedback or an outstanding agent question, and finish downloads, before starting. `/cancel` cancels native secret intake and feedback, not an agent task. Stop retains its existing request-scoped agent cancellation authority. Replying to an expired/cancelled prompt cannot restart intake; start a new `/secret` request instead.
+During intake, unmatched messages and other controls are blocked rather than sent to the model. Finish/cancel feedback and finish downloads before starting. Answer an outstanding agent question using its buttons or ordinary non-sensitive text, or wait for its 15-minute expiry, before retrying `/secret`. `/cancel` cancels native secret intake and feedback, not an agent question or task. Stop retains its existing request-scoped agent cancellation authority. Replying to an expired/cancelled prompt cannot restart intake; start a new `/secret` request instead.
 
 Files are created without overwrite at `.pi/telegram-secrets/filename`. The entire directory is Git-ignored and refused by Telegram document/photo upload tools, including unrecognized filenames; outbound hard-link aliases are refused as well. Existing unsafe paths/permissions require local repair, not automatic broad chmod or deletion. Unix creation modes are directory 0700/file 0600; these are not a Windows ACL guarantee.
 
@@ -45,6 +45,12 @@ An accepted private owner `/reload` can reply `Telegram reloaded · v<loadedVers
 ### Silent startup (since 0.6.2)
 
 Startup, resume, reload and reconnection no longer send an automatic Connected message. Check local `/telegram-status`, or send `/ping` in the paired owner's private chat for `Pong · project · vLoadedVersion`. Ping is handled by the extension even while the model is busy: it does not steer, create a model request or grant file/Stop authority. It does not look up Git, hostname or IP; `/status` remains detailed. No reply is promised while disconnected. Published 0.6.1 retains its startup notice. Explicit setup confirmations, critical errors and update offers are unchanged.
+
+### Context compaction notices (0.6.4)
+
+When Pi's compaction extension hooks are available, the connected bot reports that context compaction is starting, then reports completion, failure or cancellation when the corresponding outcome hook arrives. This works for automatic compaction and manual `/compact`, without asking the model to send a message. Notices contain no summary or conversation content and do not mean your request has finished.
+
+Delivery is best effort and limited to the current connection. Early preparation/authentication pauses and failures before the start hook may be silent; older hosts missing an outcome hook remain start-only rather than claiming success. Full hook emission was source-verified in Pi 0.87.1 and the development SDK 1.3.0, not every supported host. This feature has not been installed into the running host or live-tested.
 
 ## Sessions, transfers and safe recovery
 

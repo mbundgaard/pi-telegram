@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## Current 0.6.3 release — verified
+## Current 0.6.4 release candidate — publication pending
+
+- Owner authorized patch bump, release commit/push and one Trusted Publishing dispatch after gates. Registry latest is 0.6.3; 0.6.4 was unused at preparation. Scope: main-reviewed native compaction notices and actionable secret-blocker diagnostics/repeated-save tests; dependencies unchanged.
+- Compaction hooks are source-verified in Pi 0.87.1 and development SDK 1.3.0, not a universal compatibility matrix. Pre-hook pauses and missing outcomes remain unobservable; never infer success. No private event contents, startup chatter or widened receipt authority.
+- Unanswered agent questions are a reproduced secret blocker candidate, not proof of the owner's exact live cause or a stale successful-save fix. No running-host installation/reload/restart, live compaction/secret tests or external messages. Clean npm ci, typecheck, **264 tests** (none skipped), full/production audits zero vulnerabilities, pack46 and diff checks passed. Record publication evidence only after verification.
+
+## Historical 0.6.3 release — verified
 
 - Public npm `latest` is **0.6.3**, released from `b7aa4ceeacf25afac9294af4ae7fc8f0d9536455`. CI **38978048307** and Trusted Publishing **38978137401** succeeded under `mbundgaard/pi-telegram`; publish was dispatched exactly once. Registry visibility lagged, then latest/version were verified without replay.
 - All **45 published files** byte-match the release commit. SHA-1: `dc13098aafe2b5648f5fa9884632b92139494087`; integrity: `sha512-S19Epkdz57UyC8TBj0doNsijG2sf77MnorPVvIdYowGXFhnFzTgWPxm3Kk/ur+0aR/5mHBgB2hXmNsSMuAx0qA==`. Decoded SLSA subject hash and linkage match commit/repository/`.github/workflows/publish.yml`/run **38978137401**, attempt **1**. No independent DSSE/certificate-chain/Rekor verification.

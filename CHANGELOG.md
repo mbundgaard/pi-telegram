@@ -2,6 +2,13 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.4 — native compaction notices and secret diagnostics
+
+- Report compaction start and hook-confirmed completion, failure or cancellation through native plain notices, for manual and automatic compaction. No model call, conversation content, Working/draft changes or added request authority; startup remains silent. Delivery is best effort and current-connection-bound.
+- Full hook ordering was source-verified in Pi 0.87.1 and development SDK 1.3.0, not every supported host. Pre-hook pauses/failures may be silent; missing outcome hooks never imply success. Live compaction testing remains unperformed.
+- Make `/secret` refusals distinguish connection readiness, downloads, feedback and unanswered agent questions, with actionable recovery guidance. Repeated-save tests cover routing and cleanup. An unanswered question is a reproduced blocker candidate, not proof of the reported live cause or a claim that successful-save state leaked. `/cancel` does not dismiss agent questions.
+- Dependencies unchanged. No running-host installation or reload is included.
+
 ## 0.6.3 — native secret intake
 
 - Add owner/private `/secret` (including menu invocation) with a filename ForceReply followed by a separate filename-labelled content ForceReply; `/secret <filename>` remains a direct shortcut. Both stages and filename corrections share one fixed five-minute deadline. Old filename prompts are rejection-only after transition, cancellation, expiry and reconnect; filename messages remain for manual cleanup. Exact nonempty text (including whitespace) is saved as UTF-8 under `.pi/telegram-secrets/`, never previewed or sent to the model. Only bounded path/byte-count metadata becomes an authenticated follow-up.
