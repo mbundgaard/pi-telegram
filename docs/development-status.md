@@ -2,7 +2,17 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.4 release candidate — publication pending
+## 0.6.4 released — verified
+
+Public npm `latest` is **0.6.4**, released from [`7634637214bbeea9fec82656c3c6ddfded28d141`](https://github.com/mbundgaard/pi-telegram/commit/7634637214bbeea9fec82656c3c6ddfded28d141). [CI 39979864026](https://github.com/mbundgaard/pi-telegram/actions/runs/39979864026) and [Trusted Publishing 39980073990](https://github.com/mbundgaard/pi-telegram/actions/runs/39980073990), attempt **1**, completed successfully at that exact commit. One successful main-ref dispatch created the publish run. A preceding SHA-ref dispatch request was rejected HTTP 422 (no ref) without creating a run; it did not publish anything. No workflow or publication retry occurred during verification. Public registry visibility lagged before latest/version confirmation.
+
+All **46 published files** byte-match the release commit. Downloaded SHA-1 is `bd2f479f104d625063e327d0a24dbef1192caa03`; computed SHA-512 matches registry integrity `sha512-f4wJlBpyrScTH18xgJOAW+a+HTIca6yk8GXGOv1xl1NLjXv6mPwKb8KKG5pEzCGzWK8ng5jU4EPjMYo5GX4ZBg==` and the decoded SLSA subject hash. Decoded SLSA v1 links the exact commit, repository `mbundgaard/pi-telegram`, `.github/workflows/publish.yml`, `refs/heads/main` and run **39980073990**, attempt **1**. Hash and payload linkage checks are not independent DSSE/certificate-chain/Rekor cryptographic verification.
+
+Pre-publication clean `npm ci`, typecheck, **264 tests** (none skipped), full/production audits (**zero vulnerabilities**), pack (**46 files**) and diff checks passed; release-commit CI and publication validation also succeeded. Dependencies are unchanged. Scope is main-reviewed native compaction notices and actionable secret-blocker diagnostics/repeated-save tests, not a proven fix for the owner's exact live refusal.
+
+No installation into running Pi, reload/restart, live compaction/secret/bot tests, runtime-secret inspection or external owner messages were performed. Compaction hooks were source-verified for Pi 0.87.1 and development SDK 1.3.0, not universally; pre-hook pauses and absent outcomes remain unobservable, and success must not be inferred. Secret privacy/deletion, two-session, host-cancellation and adverse-network limitations remain as documented below. Published documentation retains its pre-publication snapshot; this documentation-only checkpoint does not change the immutable artifact. Do not republish 0.6.4.
+
+## Historical 0.6.4 release candidate — publication pending
 
 Owner authorized the patch release, explicit commit/push and one Trusted Publishing dispatch after validation. Registry latest was 0.6.3 and 0.6.4 was unused. Main reviewed native compaction notices; release review also checked the secret diagnostics and repeated-operation tests. Scope is compaction notifications and actionable secret-blocker errors, not a proven fix for the owner's exact live refusal. Dependencies are unchanged. No running-host installation/reload/restart or live compaction/secret/Telegram tests are authorized. Clean `npm ci`, typecheck and **264 tests** (none skipped), full and production audits (**zero vulnerabilities**), pack check (**46 files**) and diff check passed. Publication evidence will be recorded after verification.
 
@@ -14,7 +24,7 @@ Actual installed Pi **0.87.1** declarations and manual/automatic runtime emissio
 
 Validation: typecheck and **264 tests** passed (none skipped), pack **46 files**, diff check passed. No dependency/version changes, installation/reload, live compaction/bot calls, external messages, commit/push/publication. Main review and separately authorized activation remain pending.
 
-## Unreleased repeated-secret investigation — main review required
+## Historical unreleased repeated-secret investigation — main review required
 
 The reported 0.6.3 refusal comes from `SecretFlow.start`: `dispatch` combines download, native feedback and pending agent-question state; absent options/bot identity or failed connection `current()` share the same old message. It is **not** the active-secret branch: an unfinished secret flow intercepts incoming text earlier with a different refusal. Successful save calls `cancel(false)` (clears flow/timer, aborts its controller) before the metadata-only follow-up. Deletion failure also reaches that cleanup; cancel during cleanup preserves the already committed file and suppresses the follow-up. No leaked successful-save fence was found.
 

@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## Current 0.6.4 release candidate — publication pending
+## Current 0.6.4 release — verified
+
+- Public npm `latest` is **0.6.4**, released from `7634637214bbeea9fec82656c3c6ddfded28d141`. CI **39979864026** and Trusted Publishing **39980073990**, attempt **1**, succeeded under `mbundgaard/pi-telegram`. One successful main-ref dispatch created the publish run; the preceding SHA-ref request was rejected HTTP 422 without creating a run. No publication retry; registry visibility lagged before verification.
+- All **46 published files** byte-match the release commit. SHA-1: `bd2f479f104d625063e327d0a24dbef1192caa03`; integrity: `sha512-f4wJlBpyrScTH18xgJOAW+a+HTIca6yk8GXGOv1xl1NLjXv6mPwKb8KKG5pEzCGzWK8ng5jU4EPjMYo5GX4ZBg==`. Computed SHA-512 matches the decoded SLSA subject; payload linkage matches commit/repository/`.github/workflows/publish.yml`/run **39980073990**, attempt **1**. No independent DSSE/certificate-chain/Rekor verification.
+- Release gates below passed; dependencies unchanged. No running-host installation/reload/restart, live compaction/secret/bot testing, runtime-secret inspection or external messages. Compaction observability, secret privacy/deletion, two-session, host-cancellation and adverse-network limits remain. Published documentation retains its pre-publication snapshot. Do not republish 0.6.4.
+
+## Historical 0.6.4 release candidate — publication pending
 
 - Owner authorized patch bump, release commit/push and one Trusted Publishing dispatch after gates. Registry latest is 0.6.3; 0.6.4 was unused at preparation. Scope: main-reviewed native compaction notices and actionable secret-blocker diagnostics/repeated-save tests; dependencies unchanged.
 - Compaction hooks are source-verified in Pi 0.87.1 and development SDK 1.3.0, not a universal compatibility matrix. Pre-hook pauses and missing outcomes remain unobservable; never infer success. No private event contents, startup chatter or widened receipt authority.
