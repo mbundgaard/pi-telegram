@@ -11,13 +11,19 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.5 candidate — authorized publication pending
+## Current 0.6.5 release — verified
+
+- Public npm latest **0.6.5**, release commit `06353ac38af79a6263808bdf04a3cd9a9fb35c5d`. CI **40188722832** and Trusted Publishing **40188777235**, attempt **1**, succeeded. Exactly one dispatch using `--ref main`; registry lag resolved with read-only checks, no retry.
+- All **46 published files** byte-match the release commit. SHA-1 `7041252d72b24e2565e4b8ff88e3e0a2af4c4c76`; integrity `sha512-1WtckjDii88e36QvJ9cZlkPQrGc20kp5WPjeO0xWT7uaeqVjUk3exutidITxcdqmgmdu75j+kdZWlvuSd4/rUQ==`. Computed SHA-512 matches decoded SLSA subject; commit/repository/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.
+- Clean ci/typecheck/**271 tests** (none skipped), full/production audit zero vulnerabilities, pack46/diff/local byte checks passed. Scoped SDK-chain override to undici8.12.2 is dev-only, not consumer-host remediation. Production dependencies unchanged. No running-host install/reload, live bot/secret tests, runtime-secret inspection or external messages. Existing privacy/deletion, two-session, cancellation and adverse-network limitations remain. Do not republish 0.6.5; published docs retain their candidate snapshot.
+
+## Historical 0.6.5 candidate — authorized publication pending
 
 - Owner authorized scoped development SDK override, patch bump/commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest was 0.6.4; 0.6.5 was unused. Independent release review passed for early exact-ACK secret buffering, replacement/callback fences and unchanged no-clobber storage; no live privacy claim.
 - Narrow root override `@earendil-works/pi-coding-agent` → `undici: 8.12.2` replaces SDK 1.3.0's vulnerable 8.10.2; SDK stays 1.3.0. Both require Node >=22.19.0. Reviewed intervening release notes and dispatcher APIs. Development-only remediation; published dependency overrides do not patch consumers' hosts. Production dependencies unchanged.
 - Clean npm ci, typecheck, **271 tests** (none skipped), full/production audits zero vulnerabilities. Pack46/diff checks passed and all local tarball files byte-matched the tree. No running-host installation/reload, real secrets, live Telegram tests or external messages. Publication evidence follows verification; preserve prior checkpoints.
 
-## Current 0.6.4 release — verified
+## Historical 0.6.4 release — verified
 
 - Public npm `latest` is **0.6.4**, released from `7634637214bbeea9fec82656c3c6ddfded28d141`. CI **39979864026** and Trusted Publishing **39980073990**, attempt **1**, succeeded under `mbundgaard/pi-telegram`. One successful main-ref dispatch created the publish run; the preceding SHA-ref request was rejected HTTP 422 without creating a run. No publication retry; registry visibility lagged before verification.
 - All **46 published files** byte-match the release commit. SHA-1: `bd2f479f104d625063e327d0a24dbef1192caa03`; integrity: `sha512-f4wJlBpyrScTH18xgJOAW+a+HTIca6yk8GXGOv1xl1NLjXv6mPwKb8KKG5pEzCGzWK8ng5jU4EPjMYo5GX4ZBg==`. Computed SHA-512 matches the decoded SLSA subject; payload linkage matches commit/repository/`.github/workflows/publish.yml`/run **39980073990**, attempt **1**. No independent DSSE/certificate-chain/Rekor verification.

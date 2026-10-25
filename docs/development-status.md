@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.5 candidate — authorized publication pending
+## 0.6.5 released — verified
+
+Public npm `latest` is **0.6.5**, released from [`06353ac38af79a6263808bdf04a3cd9a9fb35c5d`](https://github.com/mbundgaard/pi-telegram/commit/06353ac38af79a6263808bdf04a3cd9a9fb35c5d). [CI 40188722832](https://github.com/mbundgaard/pi-telegram/actions/runs/40188722832) and [Trusted Publishing 40188777235](https://github.com/mbundgaard/pi-telegram/actions/runs/40188777235), attempt **1**, succeeded at that exact commit. Dispatch occurred exactly once with `--ref main`, after checking main's exact SHA and successful CI. Registry visibility lagged; only read-only verification was repeated, never publication.
+
+All **46 published files** byte-match the release commit. Downloaded SHA-1: `7041252d72b24e2565e4b8ff88e3e0a2af4c4c76`; computed SHA-512 matches registry integrity `sha512-1WtckjDii88e36QvJ9cZlkPQrGc20kp5WPjeO0xWT7uaeqVjUk3exutidITxcdqmgmdu75j+kdZWlvuSd4/rUQ==` and the decoded SLSA subject. Decoded payload linkage identifies the exact commit, repository `mbundgaard/pi-telegram`, `.github/workflows/publish.yml`, main ref and run **40188777235**, attempt **1**. This is hash/payload verification, not independent DSSE/certificate-chain/Rekor cryptographic verification.
+
+Release gates passed: clean npm ci, typecheck, **271 tests** (none skipped), full/production audits **zero vulnerabilities**, pack46 and diff checks, local tarball byte comparison; CI/publish validation also succeeded. Reviewed development-only scoped undici remediation is detailed below; production dependencies and consumers' running hosts are unchanged. No running-host installation/reload/restart, live Telegram/secret testing, private runtime inspection or external messages. Source/mocks do not prove live privacy/deletion, two-session, cancellation or adverse-network behavior. Published docs retain the candidate snapshot; this postpublication checkpoint does not alter the immutable artifact. Do not republish 0.6.5.
+
+## Historical 0.6.5 candidate — authorized publication pending
 
 Registry latest was 0.6.4 and 0.6.5 returned E404 before preparation. Owner authorized the patch bump, commit/push and one main-ref Trusted Publishing dispatch after gates. Independent release review of the secret diff found owner/private/current-prompt checks before buffering, exact acknowledged ID revalidation before save, bounded one-candidate memory and explicit disposal, metadata-only callbacks, synchronous replacement/generation fencing and unchanged atomic no-clobber storage. Queued/inflight question and feedback callbacks cannot restore retired interactions. This is source/mock evidence, not live privacy or deletion verification.
 
