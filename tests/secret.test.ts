@@ -82,21 +82,16 @@ test("successive direct and menu saves remain available before, during and after
   assert.ok(!JSON.stringify(f.requests).includes("DUMMY-repeat"));
 }));
 
-test("a question after a successful save blocks repeats until answered, not until metadata settles", async () => fixture(async f => {
+test("a fresh secret command replaces a question after a successful save",  async () => fixture(async f => {
   const p = await f.ready();
   f.dispatch({ text: "DUMMY-first", reply_to_message: p });
   await wait(() => f.inputs.length === 1);
   await f.connection.post("What next?", [{ label: "Continue", reply: "Continue" }]);
-  for (const text of ["/secret", "/secret next.txt", "/cancel", "/secret next.txt"]) f.dispatch({ text });
-  await flush();
-  assert.equal(f.requests.filter((r: any) => r.body.reply_markup?.force_reply).length, 1);
-  assert.ok(f.requests.some((r: any) => r.body.text?.includes("an agent question is awaiting an answer")));
-  assert.ok(f.requests.some((r: any) => r.body.text?.includes("/cancel does not dismiss agent questions")));
-  assert.equal(f.inputs.length, 1, "refusals never become model input");
-  f.dispatch({ text: "Please continue" });
   await f.ready("next.txt");
+  assert.equal((f.connection as any).question, undefined);
+  assert.equal(f.inputs.length, 1, "replacement never becomes model input");
   f.dispatch({ text: "DUMMY-second", reply_to_message: f.bot() });
-  await wait(() => f.inputs.length === 3);
+  await wait(() => f.inputs.length === 2);
   assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "next.txt"), "utf8"), "DUMMY-second");
 }));
 
@@ -149,6 +144,156 @@ test("prompt in flight fences data and cancellation cannot revive prompt", async
   assert.equal(f.inputs.length, 0); assert.equal((f.connection as any).secret.active, false);
 }));
 
+test("visible prompt before acknowledgement holds one reply until exact ACK, for direct and menu intake",  async () => {
+  for (const menu of [false, true]) for (const failure of [false, true]) await fixture(async f => {
+    const held = deferred(), entered = deferred();
+    let filename: any;
+    if (menu) {
+      f.dispatch({ text: "/secret" });
+      await wait(() => (f.connection as any).secret.flow?.phase === "awaiting");
+      filename = f.bot();
+    }
+    f.hook(async (r: any) => {
+      if (r.body.reply_markup?.force_reply) {
+        entered.resolve(); await held.promise;
+        if (failure) throw new Error("DUMMY-uncertain-send-error");
+      }
+    });
+    f.dispatch(menu ? { text: "dummy.txt", reply_to_message: filename } : { text: "/secret dummy.txt" });
+    await entered.promise;
+    const visible = f.bot();
+    f.dispatch({ text: "DUMMY-fast-reply", reply_to_message: visible });
+    await flush();
+    await assert.rejects(stat(join(f.cwd, SECRET_DIRECTORY, "dummy.txt")));
+    assert.equal(f.inputs.length, 0);
+    f.dispatch({ text: "DUMMY-duplicate", reply_to_message: visible });
+    held.resolve();
+    await wait(() => failure ? !(f.connection as any).secret.active : f.inputs.length === 1);
+    await flush();
+    assert.equal(f.requests.filter((r: any) => r.body.reply_markup?.force_reply).length, menu ? 2 : 1);
+    if (failure) {
+      await assert.rejects(stat(join(f.cwd, SECRET_DIRECTORY, "dummy.txt")));
+      assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 0);
+      assert.ok(f.requests.some((r: any) => r.body.text?.includes("A prompt may be visible")));
+      assert.ok(!f.requests.some((r: any) => r.body.text?.includes("destination may already exist")));
+      f.dispatch({ text: "DUMMY-stale-reply", reply_to_message: visible });
+      await flush(); assert.equal(f.inputs.length, 0);
+    } else {
+      assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), "utf8"), "DUMMY-fast-reply");
+      assert.equal(f.inputs.length, 1);
+      assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 2);
+    }
+    assert.ok(!JSON.stringify(f.requests).includes("DUMMY-"));
+    assert.ok(!JSON.stringify(f.inputs).includes("DUMMY-"));
+  });
+});
+
+test("fast filename reply advances only after ACK and retains fixed deadline", async () => fixture(async f => {
+  const held = deferred(), entered = deferred(); let once = false;
+  f.hook(async (r: any) => { if (!once && r.body.reply_markup?.force_reply) { once = true; entered.resolve(); await held.promise; } });
+  f.dispatch({ text: "/secret" }); await entered.promise;
+  const expires = (f.connection as any).secret.flow.expires;
+  f.dispatch({ text: "fast-name.txt", reply_to_message: f.bot() });
+  f.dispatch({ text: "duplicate.txt", reply_to_message: f.bot() });
+  held.resolve();
+  await wait(() => (f.connection as any).secret.flow?.stage === "content" && (f.connection as any).secret.flow?.phase === "awaiting");
+  assert.equal((f.connection as any).secret.flow.expires, expires);
+  f.dispatch({ text: "DUMMY-fast-name", reply_to_message: f.bot() });
+  await wait(() => f.inputs.length === 1);
+  assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "fast-name.txt"), "utf8"), "DUMMY-fast-name");
+}));
+
+test("inflight candidates require current nonce AND confirmed exact ID; replacement drops buffers", async () => {
+  for (const mode of ["nonce", "id", "replace", "stop", "expire"]) await fixture(async f => {
+    const held = deferred(), entered = deferred(); let once = false;
+    f.hook(async (r: any) => { if (!once && r.body.reply_markup?.force_reply) { once = true; entered.resolve(); await held.promise; } });
+    f.dispatch({ text: "/secret old.txt" }); await entered.promise;
+    const old = f.bot();
+    const quoted = mode === "nonce" ? { ...old, text: old.text.replace(/[a-f0-9]{24}/, "0".repeat(24)) } : mode === "id" ? { ...old, message_id: 999 } : old;
+    f.dispatch({ text: "DUMMY-buffer", reply_to_message: quoted });
+    const oldFlow = (f.connection as any).secret.flow;
+    if (mode === "replace") await f.ready("new.txt");
+    if (mode === "stop") f.dispatch({ text: "/stop" });
+    if (mode === "expire") oldFlow.expires = Date.now() - 1;
+    held.resolve(); await flush();
+    await assert.rejects(stat(join(f.cwd, SECRET_DIRECTORY, "old.txt")));
+    assert.equal(f.inputs.length, 0);
+    if (mode === "replace" || mode === "stop") assert.equal(oldFlow.early, undefined);
+    if (mode === "replace") {
+      f.dispatch({ text: "/secret stale.txt", reply_to_message: old });
+      f.dispatch({ text: "DUMMY-new", reply_to_message: f.bot() });
+      await wait(() => f.inputs.length === 1);
+      assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "new.txt"), "utf8"), "DUMMY-new");
+    }
+    assert.ok(!JSON.stringify(f.inputs).includes("DUMMY-"));
+    assert.ok(!JSON.stringify(f.requests).includes("DUMMY-"));
+  });
+});
+
+test("secret supersedes inflight and queued questions, and blocks new button sends until done", async () => fixture(async f => {
+  const held = deferred(), entered = deferred();
+  f.hook(async (r: any) => { if (r.method === "sendRichMessage") { entered.resolve(); await held.promise; } });
+  const first = assert.rejects(f.connection.post("Old?", [{ label: "Yes", reply: "yes" }]));
+  await entered.promise;
+  const queued = assert.rejects(f.connection.post("Queued?", [{ label: "Yes", reply: "yes" }]));
+  await f.ready();
+  await assert.rejects(f.connection.post("New?", [{ label: "Yes", reply: "yes" }]), /Secret intake/);
+  await assert.rejects(f.connection.postEmbedded([{ type: "button_row", buttons: [{ label: "Yes", reply: "yes" }] }]), /Secret intake/);
+  held.resolve(); await Promise.all([first, queued]);
+  assert.equal((f.connection as any).question, undefined);
+  assert.equal(f.requests.filter((r: any) => r.method === "sendRichMessage").length, 1);
+  f.dispatch({ text: "/cancel" });
+  assert.equal((f.connection as any).question, undefined);
+  assert.equal(f.inputs.length, 0);
+}));
+
+test("invalid replacement preserves current question or intake; valid repeated starts replace", async () => fixture(async f => {
+  await f.connection.post("Question?", [{ label: "Yes", reply: "yes" }]);
+  const question = (f.connection as any).question;
+  f.dispatch({ text: "/secret ../bad" });
+  assert.equal((f.connection as any).question, question);
+  const old = await f.ready();
+  const flow = (f.connection as any).secret.flow;
+  f.dispatch({ text: "/secret CON" });
+  assert.equal((f.connection as any).secret.flow, flow);
+  f.dispatch({ text: "/secret one.txt" });
+  await f.ready("two.txt");
+  f.dispatch({ text: "DUMMY-old", reply_to_message: old });
+  f.dispatch({ text: "DUMMY-two", reply_to_message: f.bot() });
+  await wait(() => f.inputs.length === 1);
+  assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "two.txt"), "utf8"), "DUMMY-two");
+}));
+
+test("secret retires inflight feedback prompt and preview without Submit resurrection", async () => {
+  for (const preview of [false, true]) await fixture(async f => {
+    const feedback = (f.connection as any).feedback;
+    feedback.options = { endpoint: "https://feedback.example.test/", version: "0.6.4" };
+    if (preview) { f.dispatch({ text: "/feedback" }); await wait(() => feedback.current?.phase === "awaiting"); }
+    const held = deferred(), entered = deferred();
+    f.hook(async (r: any) => { if (r.body.text?.startsWith("Pi Telegram feedback")) { entered.resolve(); await held.promise; } });
+    if (preview) f.dispatch({ text: "dummy feedback", reply_to_message: f.bot() });
+    else f.dispatch({ text: "/feedback" });
+    await entered.promise;
+    const old = f.requests.at(-1);
+    await f.ready(); held.resolve(); await flush();
+    assert.equal(feedback.active, false);
+    f.dispatch({ text: "/cancel" });
+    if (preview) (f.connection as any).dispatch({ callback_query: { id: "old", from: { id: 42, is_bot: false }, message: f.bot(old), data: old.body.reply_markup.inline_keyboard[0][0].callback_data } }, (m: any) => f.inputs.push(m));
+    else f.dispatch({ text: "DUMMY-stale", reply_to_message: f.bot(old) });
+    await flush(); assert.equal(f.inputs.length, 0);
+    assert.ok(!f.requests.some((r: any) => r.body.feedback));
+  });
+});
+
+test("preparation failures are distinct from uncertain visible prompt delivery", async () => fixture(async f => {
+  f.verified(false);
+  f.dispatch({ text: "/secret dummy.txt" });
+  await wait(() => !(f.connection as any).secret.active); await flush();
+  assert.equal(f.prompt(), undefined);
+  assert.ok(f.requests.some((r: any) => r.body.text?.includes("preparation failed before sending its prompt")));
+  assert.equal(f.inputs.length, 0);
+}));
+
 test("revalidation failure and cancel during verification prevent late writes and deletion", async () => {
   for (const mode of ["cancel", "disconnect", "transfer", "verify"]) await fixture(async f => {
     const p = await f.ready(), entered = deferred(), held = deferred();
@@ -198,14 +343,14 @@ test("deletion failure warns without secret or retry; write collision does not d
   });
 });
 
-test("download and agent question refuse secret collection; callback cannot enter model while active", async () => fixture(async f => {
+test("download remains guarded; secret replaces question and callbacks stay inert",  async () => fixture(async f => {
   (f.connection as any).incoming = { controller: new AbortController(), task: Promise.resolve() };
   f.dispatch({ text: "/secret dummy.txt" }); await flush(); assert.equal(f.prompt(), undefined);
   assert.ok(f.requests.some((r: any) => r.body.text?.includes("a file download is active")));
   (f.connection as any).incoming = undefined;
   await f.connection.post("Question", [{ label: "Yes", reply: "yes" }]);
-  f.dispatch({ text: "/secret dummy.txt" }); await flush(); assert.equal(f.prompt(), undefined);
-  f.dispatch({ text: "/stop" }); await f.ready();
+  await f.ready();
+  assert.equal((f.connection as any).question, undefined);
   (f.connection as any).dispatch({ callback_query: { id: "q", from: { id: 42, is_bot: false }, data: "ask:old:0" } }, (m: any) => f.inputs.push(m));
   await flush(); assert.equal(f.inputs.length, 0);
 }));
@@ -262,12 +407,16 @@ test("retired intake rejects recognizable prompt replies but does not redact ord
   assert.equal(f.inputs[0].text, "ordinary non-sensitive conversation");
 }));
 
-test("native feedback must be cancelled before secret collection", async () => fixture(async f => {
-  // Existing flow state is transport-owned; this isolates admission from endpoint availability.
-  Object.defineProperty((f.connection as any).feedback, "active", { value: true, configurable: true });
-  f.dispatch({ text: "/secret dummy.txt" }); await flush();
-  assert.equal(f.prompt(), undefined); assert.equal(f.inputs.length, 0);
-  assert.ok(f.requests.some((r: any) => r.body.text?.includes("feedback is active. Finish it or use /cancel")));
+test("native feedback is cancelled by fresh secret without submission", async () => fixture(async f => {
+  const feedback = (f.connection as any).feedback;
+  feedback.options = { endpoint: "https://feedback.example.test/", version: "0.6.4" };
+  f.dispatch({ text: "/feedback" });
+  await wait(() => feedback.current?.phase === "awaiting");
+  const old = f.bot();
+  await f.ready();
+  assert.equal(feedback.active, false);
+  f.dispatch({ text: "DUMMY-stale-feedback", reply_to_message: old });
+  assert.equal(f.inputs.length, 0);
 }));
 
 test("unready connection refuses both commands without prompting and can recover", async () => fixture(async f => {

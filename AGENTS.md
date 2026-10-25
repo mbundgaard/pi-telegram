@@ -11,6 +11,12 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## 0.6.5 candidate — authorized publication pending
+
+- Owner authorized scoped development SDK override, patch bump/commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest was 0.6.4; 0.6.5 was unused. Independent release review passed for early exact-ACK secret buffering, replacement/callback fences and unchanged no-clobber storage; no live privacy claim.
+- Narrow root override `@earendil-works/pi-coding-agent` → `undici: 8.12.2` replaces SDK 1.3.0's vulnerable 8.10.2; SDK stays 1.3.0. Both require Node >=22.19.0. Reviewed intervening release notes and dispatcher APIs. Development-only remediation; published dependency overrides do not patch consumers' hosts. Production dependencies unchanged.
+- Clean npm ci, typecheck, **271 tests** (none skipped), full/production audits zero vulnerabilities. Pack46/diff checks passed and all local tarball files byte-matched the tree. No running-host installation/reload, real secrets, live Telegram tests or external messages. Publication evidence follows verification; preserve prior checkpoints.
+
 ## Current 0.6.4 release — verified
 
 - Public npm `latest` is **0.6.4**, released from `7634637214bbeea9fec82656c3c6ddfded28d141`. CI **39979864026** and Trusted Publishing **39980073990**, attempt **1**, succeeded under `mbundgaard/pi-telegram`. One successful main-ref dispatch created the publish run; the preceding SHA-ref request was rejected HTTP 422 without creating a run. No publication retry; registry visibility lagged before verification.

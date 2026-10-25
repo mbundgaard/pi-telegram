@@ -2,6 +2,13 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.5 — simpler secret intake and prompt acknowledgement races
+
+- Valid standalone `/secret` replaces pending agent questions, feedback and earlier intake without approving/cancelling agent work or submitting feedback. Downloads remain guarded; new button questions are refused during intake. Exact content replies starting `/secret` remain literal.
+- Hold at most one bounded early reply to the current visible prompt until its send acknowledgement confirms the exact prompt ID. Cancellation/replacement/uncertain delivery drops the candidate; no secret text enters notices or model input. Distinguish preparation failure from uncertain prompt delivery without automatic retries.
+- Preserve fixed deadlines, owner/private/exact-reply checks, stale-prompt rejection and no-clobber storage. Live privacy/deletion remains unverified; Telegram is not E2EE, storage is plaintext, deletion is best effort and replacement cannot undo a committed file.
+- Development-only scoped npm override: `@earendil-works/pi-coding-agent` → `undici@8.12.2`, replacing vulnerable 8.10.2 with a same-major security release. Production dependencies are unchanged. Root overrides apply to this development checkout, not consumers' Pi hosts; this release neither patches nor installs/reloads a running host.
+
 ## 0.6.4 — native compaction notices and secret diagnostics
 
 - Report compaction start and hook-confirmed completion, failure or cancellation through native plain notices, for manual and automatic compaction. No model call, conversation content, Working/draft changes or added request authority; startup remains silent. Delivery is best effort and current-connection-bound.

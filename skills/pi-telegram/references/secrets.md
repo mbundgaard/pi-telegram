@@ -19,6 +19,12 @@ Example wording, **only after confirming support**:
 
 The two stages share one fixed five-minute deadline, including corrections. Old filename replies never become content. Filename prompt/reply messages remain in chat; only the content prompt and data reply receive best-effort post-save deletion. The exact filename validation, size limits, expiry and cancellation controls must follow the implemented runtime/native prompt, not assumptions in this recipe. Do not retry uncertain saves blindly or invent an overwrite option.
 
+## Simplified flow (0.6.5+)
+
+A valid standalone `/secret` replaces questions, feedback or earlier intake, including pending sends—not agent work or feedback submission. Do not require answering unrelated questions first. Invalid filenames preserve the interaction; downloads must finish. New button questions are refused during intake. Exact content replies beginning `/secret` stay literal; stale replies stay rejected.
+
+One bounded early reply may wait in memory for the confirmed exact prompt ID. Failure, cancel, replacement or expiry drops it without save/model input. Remove sensitive rejected replies manually; never resend blindly. Confirm activation separately.
+
 ## Privacy and cancellation limits
 
 - This is native intake, not a secret vault. Bot chats are not end-to-end encrypted; Telegram receives the value. The local file is plaintext. Filesystem-capable agents/processes can still read it: intake isolation is not a filesystem access boundary. Do not inspect or disclose it.

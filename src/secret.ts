@@ -11,7 +11,7 @@ interface IO {
   request(method: string, body: Record<string, unknown>, signal: AbortSignal): Promise<{ message_id: number }>;
   background(work: Promise<void>): void; notice(text: string): void; signal: AbortSignal;
 }
-interface Flow { expires: number; timer: NodeJS.Timeout; target?: SecretTarget; promptId?: number; stage: "filename" | "content"; phase: "preparing" | "prompting" | "awaiting" | "saving"; controller: AbortController }
+interface Flow { promptText?: string; early?: { message: Message; saved: (path: string, size: number) => void }; expires: number; timer: NodeJS.Timeout; target?: SecretTarget; promptId?: number; stage: "filename" | "content"; phase: "preparing" | "prompting" | "awaiting" | "saving"; controller: AbortController }
 const filenamePrompt = "Choose a secret filename. Reply to this message with a simple ASCII basename, not secret contents, or /cancel.\nThen wait for a separate filename-labelled content prompt. The whole intake expires 5 minutes after starting.";
 const filenamePattern = /^Choose a secret filename\. Reply to this message with a simple ASCII basename, not secret contents, or \/cancel\.\nThen wait for a separate filename-labelled content prompt\. The whole intake expires 5 minutes after starting\.\n\[Pi Telegram secret filename prompt: [a-f0-9]{24}\]$/;
 const invalidName = "Invalid secret filename. Reply to the filename prompt with 1–64 ASCII letters, digits, dots, underscores or hyphens, starting with a letter or digit; no paths or reserved names.";
@@ -26,25 +26,24 @@ export class SecretFlow {
   private live(f: Flow): boolean { return this.flow === f && Date.now() < f.expires && !f.controller.signal.aborted && !this.io.signal.aborted && !!this.options?.current(); }
   cancel(notify = true): void {
     const f = this.flow; if (!f) return;
-    this.flow = undefined; clearTimeout(f.timer); f.controller.abort();
+    this.flow = undefined; f.early = undefined; f.promptText = undefined; clearTimeout(f.timer); f.controller.abort();
     if (notify) this.io.notice("Secret intake cancelled. No further data will be saved. Remove any sensitive messages manually.");
   }
   private recognized(reply?: Message): boolean {
     return !!reply && !reply.forward_origin && reply.chat.id === this.owner && reply.chat.type === "private" && reply.from?.id === this.botId && reply.from?.is_bot === true &&
       (this.known.has(reply.message_id) || (marker.test(reply.text ?? "") && promptPattern.test(reply.text ?? "")) || filenamePattern.test(reply.text ?? ""));
   }
-  start(name: string | undefined, blocked: false | "download" | "feedback" | "question"): void {
-    if (this.flow) { this.io.notice("Secret intake is already active. Reply to its prompt or use /cancel."); return; }
+  start(name: string | undefined, blocked: false | "download", replace: () => void = () => {}): void {
     if (name !== undefined && !validSecretName(name)) { this.io.notice("Invalid secret filename. Use /secret to choose a simple ASCII basename; never include secret contents in the command."); return; }
     if (!this.options || !this.options.current() || !this.botId) { this.io.notice("Secret intake is unavailable because this connection is not ready. Check /ping and the local Pi connection status; do not send secret contents."); return; }
     if (blocked) {
       const reason = {
         download: "a file download is active. Wait for it to finish, then retry /secret.",
-        feedback: "feedback is active. Finish it or use /cancel, then retry /secret.",
-        question: "an agent question is awaiting an answer. Answer it with its buttons or ordinary non-sensitive text, or wait for it to expire, then retry /secret. /cancel does not dismiss agent questions.",
       }[blocked];
       this.io.notice(`Secret intake is unavailable because ${reason}`); return;
     }
+    this.cancel();
+    replace();
     const f: Flow = { expires: Date.now() + SECRET_TTL, timer: undefined!, controller: new AbortController(), stage: name === undefined ? "filename" : "content", phase: "preparing" };
     this.flow = f;
     f.timer = setTimeout(() => { if (this.flow === f) this.cancel(); }, SECRET_TTL); f.timer.unref?.();
@@ -53,22 +52,34 @@ export class SecretFlow {
         if (!await this.options!.verify() || !this.live(f)) throw new Error();
         if (name !== undefined) f.target = await prepareSecretTarget(this.options!.cwd, name);
         await this.prompt(f);
-      } catch { if (this.flow === f) { this.cancel(false); this.io.notice("Secret prompt could not be prepared or confirmed. Destination may exist or require local safety repair. Nothing was saved; no automatic retry."); } }
+      } catch { this.promptFailed(f); }
     })());
+  }
+  private promptFailed(f: Flow): void {
+    if (this.flow !== f) return;
+    const prompting = f.phase === "prompting";
+    this.cancel(false);
+    this.io.notice(prompting
+      ? "Secret prompt delivery could not be confirmed. A prompt may be visible, but this intake is cancelled; do not reply to it. Nothing was saved by this intake. Remove any sensitive replies manually. Check /ping before starting a new /secret intake; no automatic retry."
+      : "Secret intake preparation failed before sending its prompt. Connection verification or destination safety checks failed; the destination may already exist. Nothing was saved by this intake. Check /ping or request local safety repair; do not send secret contents.");
   }
   private async prompt(f: Flow): Promise<void> {
     if (!this.live(f)) return;
     f.phase = "prompting";
     const nonce = randomBytes(12).toString("hex");
-    const sent = await this.io.request("sendMessage", { chat_id: this.owner,
-      text: f.stage === "filename" ? `${filenamePrompt}\n[Pi Telegram secret filename prompt: ${nonce}]` :
-        `Ready to save ${f.target!.name}. Reply to this message with the exact text to save, or /cancel.\nTelegram bots are not end-to-end encrypted. Stored as plaintext; deletion is best effort. Expires 5 minutes after intake started.\n[Pi Telegram secret prompt: ${nonce}]`,
+    f.promptText = f.stage === "filename" ? `${filenamePrompt}\n[Pi Telegram secret filename prompt: ${nonce}]` :
+        `Ready to save ${f.target!.name}. Reply to this message with the exact text to save, or /cancel.\nTelegram bots are not end-to-end encrypted. Stored as plaintext; deletion is best effort. Expires 5 minutes after intake started.\n[Pi Telegram secret prompt: ${nonce}]`;
+    const sent = await this.io.request("sendMessage", { chat_id: this.owner, text: f.promptText,
       reply_markup: { force_reply: true, input_field_placeholder: f.stage === "filename" ? "Filename only, or /cancel" : "Exact text, or /cancel" },
     }, AbortSignal.any([this.io.signal, f.controller.signal, AbortSignal.timeout(10_000)]));
     if (!Number.isSafeInteger(sent.message_id) || sent.message_id <= 0) throw new Error();
     this.known.add(sent.message_id);
     if (this.known.size > 1000) this.known.delete(this.known.values().next().value!);
-    if (this.live(f)) { f.promptId = sent.message_id; f.phase = "awaiting"; }
+    const early = f.early; f.early = undefined; f.promptText = undefined;
+    if (this.live(f)) {
+      f.promptId = sent.message_id; f.phase = "awaiting";
+      if (early) this.reply(early.message, early.saved);
+    }
   }
   private acceptFilename(f: Flow, name: string): void {
     // Fence synchronously: duplicate filename replies cannot start a second preflight/prompt.
@@ -87,9 +98,7 @@ export class SecretFlow {
         if (!this.live(f)) return;
         f.stage = "content";
         await this.prompt(f);
-      } catch {
-        if (this.flow === f) { this.cancel(false); this.io.notice("Secret prompt could not be prepared or confirmed. Nothing was saved; no automatic retry."); }
-      }
+      } catch { this.promptFailed(f); }
     })());
   }
   /** Called before feedback, attachments and commands. Stop and cancel are reserved even in exact replies. */
@@ -98,8 +107,18 @@ export class SecretFlow {
     const recognized = this.recognized(message.reply_to_message);
     const f = this.flow;
     if (!f && !recognized) return false;
+    if (f && this.live(f) && f.phase === "prompting") {
+      // One bounded candidate, not authority: only the confirmed API ID below can accept it.
+      if (!edited && !message.forward_origin && recognized && message.reply_to_message && f.promptText !== undefined && message.reply_to_message.text === f.promptText &&
+          Number.isSafeInteger(message.reply_to_message.message_id) && message.reply_to_message.message_id > 0 &&
+          typeof message.text === "string" && message.text.length > 0 && Buffer.byteLength(message.text, "utf8") <= (f.stage === "filename" ? 64 : SECRET_LIMIT) && !f.early) {
+        f.early = { message: { message_id: message.message_id, text: message.text, chat: { id: this.owner, type: "private" }, from: { id: this.owner, is_bot: false },
+          reply_to_message: { message_id: message.reply_to_message.message_id, text: f.promptText, chat: { id: this.owner, type: "private" }, from: { id: this.botId!, is_bot: true } } }, saved };
+      } else this.io.notice("Secret reply was not accepted while prompt delivery is pending. Remove sensitive replies manually; wait for confirmation or use /cancel.");
+      return true;
+    }
     if (edited || !recognized || !f || !this.live(f) || f.phase !== "awaiting" || message.reply_to_message?.message_id !== f.promptId || message.forward_origin) {
-      this.io.notice("Secret data was not accepted. Reply directly to the current secret prompt with text only, or use /cancel. Expired prompts cannot be reused."); return true;
+      this.io.notice("Secret data was not accepted. Reply directly to the current secret prompt with text only, or use /cancel. Expired prompts cannot be reused. Remove sensitive rejected replies manually."); return true;
     }
     const text = message.text;
     if (f.stage === "filename") {
