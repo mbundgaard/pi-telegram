@@ -2,6 +2,14 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.6 — grouped incoming files and secret readiness
+
+- Collect supported document/photo groups into one authenticated follow-up with saved paths, byte counts, captions and individual failures. Collection is best effort: 800 ms quiet / 3 s maximum, with no Telegram end marker. Late/full items require resend. Separate groups and single/voice attachments stay separate.
+- Bound reception to 4 batches / 30 files including running work, 10 per group and a 120-second active deadline. Downloads remain sequential with unchanged 20 MB per-file and 100 files / 100 MB inbox safeguards. Stop/disconnect clears unfinished work and suppresses late receipts; already-saved files remain. No automatic execution, extraction or transcription.
+- Fix secret readiness incorrectly retaining the completed startup attempt's 30-second cancellation deadline. Ready-connection, session, assignment and lease checks remain enforced; initialization cancellation still tears down.
+- Distinguish sanitized destination-preflight categories from connection/assignment verification failures without exposing native errors or file contents. The owner's reported immediate failure remains unresolved, not proven fixed by these tests. No storage safety gate is removed.
+- Dependencies unchanged. Group timing/network behavior and live secret privacy/deletion remain unverified; no host installation or reload is included.
+
 ## 0.6.5 — simpler secret intake and prompt acknowledgement races
 
 - Valid standalone `/secret` replaces pending agent questions, feedback and earlier intake without approving/cancelling agent work or submitting feedback. Downloads remain guarded; new button questions are refused during intake. Exact content replies starting `/secret` remain literal.

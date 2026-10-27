@@ -85,7 +85,7 @@ test("Stop does not borrow authority from visible Working and invalidates UI eve
   } finally { await c.stop(); globalThis.fetch = original; }
 });
 
-test("download permits ordinary input, rejects extra attachments/buttons, and Stop cancels both eligible operations", async () => {
+test("download permits ordinary input, queues extra attachments, rejects buttons, and Stop cancels both eligible operations", async () => {
   const original = globalThis.fetch; let callback = "";
   globalThis.fetch = (async (url, init) => {
     if (String(url).endsWith("/sendRichMessage")) callback = JSON.parse(String(init?.body)).reply_markup.inline_keyboard[0][0].callback_data;
@@ -100,7 +100,7 @@ test("download permits ordinary input, rejects extra attachments/buttons, and St
     dispatch(c, file, input); await tick();
     dispatch(c, { update_id: 2, callback_query: { id: "q", data: callback, from: { id: 42, is_bot: false }, message: { message_id: 10, chat: { id: 42, type: "private" } } } }, input);
     assert.equal(admitted.length, 1); assert.ok((c as any).question);
-    dispatch(c, message("ordinary"), input); dispatch(c, file, input);
+    dispatch(c, message("ordinary"), input); dispatch(c, { ...file, message: { ...file.message, message_id: 3 } }, input);
     assert.equal(admitted.length, 2); assert.equal(admitted[1].text, "ordinary");
     dispatch(c, message("/stop"), input, () => { stops++; });
     assert.equal(stops, 1); assert.equal(admitted[0].downloadSignal.aborted, true);

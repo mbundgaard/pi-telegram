@@ -94,6 +94,9 @@ export class ConnectionManager {
       );
       return false;
     }
+    // The caller signal owns acquisition/initialization only (startup and retry
+    // attempts include a deadline). After readiness, disconnect/epoch, session,
+    // assignment and the runtime lease own the connection, not that deadline.
     const check = () => {
       signal.throwIfAborted();
       lease.signal.throwIfAborted();
@@ -113,11 +116,11 @@ export class ConnectionManager {
         secret: {
           cwd: ctx.cwd,
           current: () => this.isReady && this.connection === current && this.epoch === epoch &&
-            !lease.signal.aborted && !signal.aborted && sessionId === ctx.sessionManager.getSessionId(),
+            !lease.signal.aborted && sessionId === ctx.sessionManager.getSessionId(),
           verify: async () => {
             const configured = (await loadProjectSettings(ctx.cwd))?.bots.find(entry => entry.id === bot.id);
             return this.isReady && this.connection === current && this.epoch === epoch &&
-              !lease.signal.aborted && !signal.aborted && sessionId === ctx.sessionManager.getSessionId() &&
+              !lease.signal.aborted && sessionId === ctx.sessionManager.getSessionId() &&
               configured?.sessionId === sessionId && configured.token === bot.token && configured.ownerUserId === bot.ownerUserId;
           },
         },

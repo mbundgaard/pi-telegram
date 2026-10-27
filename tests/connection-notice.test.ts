@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ConnectionManager } from "../src/connection-manager.ts";
@@ -15,13 +15,13 @@ async function fixture(work: (f: any) => Promise<void>, feedbackEndpoint?: strin
   const ctx = { cwd, sessionManager: { getSessionId: () => "main" }, ui: { setStatus() {}, notify: (text: string) => warnings.push(text), theme: { fg: (_: string, text: string) => text } } } as any;
   let connected = 0;
   const manager = new ConnectionManager({ input() {}, canStop: () => false, stopTask() {}, disconnected() {}, reload: () => false, connected: () => { connected++; }, version: "test", feedbackEndpoint });
-  let handler: (method: string, signal: AbortSignal) => Promise<Response | undefined> = async () => undefined;
+  let handler: (method: string, signal: AbortSignal, body: any) => Promise<Response | undefined> = async () => undefined;
   const ok = (result: unknown) => new Response(JSON.stringify({ ok: true, result }));
   globalThis.fetch = (async (url, init) => {
     const method = String(url).split("/").at(-1)!;
     const body = JSON.parse(String(init?.body));
     calls.push(method);
-    const result = await handler(method, init!.signal!);
+    const result = await handler(method, init!.signal!, body);
     if (result) return result;
     if (method === "getWebhookInfo") return ok({ url: "" });
     if (method === "getUpdates") {
@@ -154,3 +154,101 @@ test("an initializing connection is not ready and failed initialization releases
     handle(async () => undefined);
     assert.equal(await manager.connect(bot, ctx, new AbortController().signal), true);
   }));
+
+const waitFor = async (predicate: () => boolean) => {
+  for (let i = 0; i < 300 && !predicate(); i++) await new Promise(resolve => setTimeout(resolve, 5));
+  assert.ok(predicate(), "condition reached");
+};
+
+test("secret start and save outlive the completed startup deadline", async () => {
+  for (const abortAt of ["before-start", "before-save"]) {
+    await fixture(async ({ manager, bot, ctx, handle, ok }: any) => {
+      const startup = new AbortController();
+      await manager.connect(bot, ctx, AbortSignal.any([startup.signal, AbortSignal.timeout(30_000)]));
+      const connection = manager.connection, secret = connection.options.secret;
+      let prompt: any;
+      const inputs: any[] = [];
+      handle(async (method: string, _signal: AbortSignal, body: any) => {
+        if (method === "sendMessage" && body.reply_markup?.force_reply) {
+          prompt = { message_id: 123, text: body.text, chat: { id: 42, type: "private" }, from: { id: Number(bot.id), is_bot: true } };
+          return ok({ message_id: 123 });
+        }
+      });
+      const dispatch = (message: any) => connection.dispatch({ update_id: 1, message: {
+        message_id: 300, chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false }, ...message,
+      } }, (m: any) => inputs.push(m), () => {}, () => "status", () => false);
+      if (abortAt === "before-start") startup.abort(new DOMException("Startup deadline", "TimeoutError"));
+      assert.equal(manager.isReady, true);
+      assert.match(connection.options.ping(), /^Pong/);
+      assert.equal(secret.current(), true);
+      assert.equal(await secret.verify(), true);
+      dispatch({ text: "ordinary text" });
+      assert.equal(inputs.length, 1);
+      dispatch({ text: "/secret dummy.txt" });
+      await waitFor(() => connection.secret.flow?.phase === "awaiting");
+      if (abortAt === "before-save") startup.abort(new DOMException("Startup deadline", "TimeoutError"));
+      assert.equal(secret.current(), true);
+      assert.equal(await secret.verify(), true);
+      dispatch({ text: "DUMMY-deadline-only", reply_to_message: prompt });
+      await waitFor(() => inputs.length === 2);
+      assert.equal(await readFile(join(ctx.cwd, ".pi/telegram-secrets/dummy.txt"), "utf8"), "DUMMY-deadline-only");
+      assert.equal(inputs[1].forceFollowUp, true);
+      assert.ok(!JSON.stringify(inputs).includes("DUMMY-deadline-only"));
+    });
+  }
+});
+
+test("secret ownership still rejects changed sessions, assignments, leases and retired connections", async () =>
+  fixture(async ({ manager, bot, ctx }: any) => {
+    const lost = new AbortController();
+    const lease = { botId: bot.id, sessionId: "main", projectPath: ctx.cwd, signal: lost.signal, release: async () => { lost.abort(); } };
+    const startup = new AbortController();
+    await manager.connect(bot, ctx, startup.signal, lease);
+    startup.abort();
+    const secret = manager.connection.options.secret;
+    ctx.sessionManager.getSessionId = () => "other";
+    assert.equal(secret.current(), false); assert.equal(await secret.verify(), false);
+    ctx.sessionManager.getSessionId = () => "main";
+    for (const changed of [{ sessionId: "other" }, { token: "changed-dummy" }, { ownerUserId: "43" }]) {
+      await saveProjectSettings(ctx.cwd, { version: 2, bots: [{ ...bot, ...changed }] });
+      assert.equal(await secret.verify(), false);
+    }
+    await saveProjectSettings(ctx.cwd, { version: 2, bots: [bot] });
+    assert.equal(await secret.verify(), true);
+    lost.abort();
+    assert.equal(secret.current(), false); assert.equal(await secret.verify(), false);
+    await manager.disconnect(ctx);
+    assert.equal(secret.current(), false); assert.equal(await secret.verify(), false);
+    await manager.connect(bot, ctx, new AbortController().signal);
+    assert.equal(secret.current(), false); assert.equal(await secret.verify(), false);
+    assert.equal(await manager.connection.options.secret.verify(), true);
+  }));
+
+test("startup cancellation before readiness tears down and cannot resurrect after a late API result", async () => {
+  for (const cancel of ["deadline", "shutdown"]) {
+    await fixture(async ({ manager, bot, ctx, handle, ok, connected }: any) => {
+      const startup = new AbortController();
+      let entered!: () => void, release!: () => void;
+      const started = new Promise<void>(resolve => { entered = resolve; });
+      const held = new Promise<void>(resolve => { release = resolve; });
+      handle(async (method: string) => {
+        if (method === "getWebhookInfo") { entered(); await held; return ok({ url: "" }); }
+      });
+      const attempt = manager.connect(bot, ctx, startup.signal);
+      const rejected = assert.rejects(attempt);
+      await started;
+      const secret = manager.connection.options.secret;
+      assert.equal(secret.current(), false); assert.equal(await secret.verify(), false);
+      if (cancel === "deadline") startup.abort();
+      else await manager.disconnect(ctx);
+      release();
+      await rejected;
+      assert.equal(manager.isReady, false); assert.equal(manager.connection, undefined);
+      assert.equal(connected(), 0);
+      assert.equal(secret.current(), false); assert.equal(await secret.verify(), false);
+      handle(async () => undefined);
+      assert.equal(await manager.connect(bot, ctx, new AbortController().signal), true);
+      assert.equal(secret.current(), false);
+    });
+  }
+});

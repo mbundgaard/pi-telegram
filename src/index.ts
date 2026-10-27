@@ -17,7 +17,7 @@ import { routeTelegramInput } from "./routing.ts";
 import { resolveTelegramProjectFile } from "./files.ts";
 import { runningPackage, latestVersion, newerVersion, installPrefix, installUpdate, applyUpdateWhenIdle } from "./updates.ts";
 import type { TelegramSessionConnection } from "./telegram.ts";
-import { receiveProjectAttachment, voiceIntakeNotice } from "./incoming-files.ts";
+import { receiveProjectAttachment, receiveAttachmentBatch, voiceIntakeNotice } from "./incoming-files.ts";
 import { reconnectAssignedSession } from "./reconnect.ts";
 import { FEEDBACK_ENDPOINT } from "./feedback-endpoint.ts";
 import { restartRefusal } from "./restart.ts";
@@ -58,7 +58,22 @@ export default function piTelegram(pi: ExtensionAPI): void {
     },
   });
   const connections = new ConnectionManager({
-    input({ text, forceSteer, forceFollowUp, attachment, downloadSignal }, current, ctx) {
+    input({ text, forceSteer, forceFollowUp, attachment, attachments, downloadSignal }, current, ctx) {
+      if (attachments) {
+        if (!downloadSignal || downloadSignal.aborted || connections.connection !== current) return;
+        current.sendControlNotice("Downloading file group…");
+        return (async () => {
+          const result = await receiveAttachmentBatch(attachments, downloadSignal, item =>
+            receiveProjectAttachment(ctx.cwd, item.attachment, downloadSignal,
+              () => current.downloadIncomingFile(item.attachment.fileId, downloadSignal)));
+          if (downloadSignal.aborted || connections.connection !== current) return;
+          if (result.request) {
+            const content = responses.origins.enqueue(result.request, current);
+            pi.sendUserMessage(content, { deliverAs: "followUp" });
+          }
+          current.sendControlNotice(`File group: ${result.saved} received, ${result.failed} failed. ${result.failed ? "Saved files remain. Resend failed attachments; check the 20 MB per-file and 100 files / 100 MB inbox limits, Git-ignore safeguards and permissions." : ""}`.trim());
+        })();
+      }
       if (attachment) {
         if (!downloadSignal || downloadSignal.aborted || connections.connection !== current) return;
         current.sendControlNotice("Downloading attachment…");
@@ -73,10 +88,9 @@ export default function piTelegram(pi: ExtensionAPI): void {
             pi.sendUserMessage(content, { deliverAs: "followUp" });
             current.sendControlNotice(`Received attachment (${saved.size} bytes).`);
           } catch {
+            downloadSignal.throwIfAborted();
             if (connections.connection === current)
-              current.sendControlNotice(downloadSignal.aborted
-                ? "File reception cancelled or timed out. Please resend if needed."
-                : "Could not receive the attachment. Maximum file size: 20 MB; inbox quota: 100 files / 100 MB. Check local inbox space, Git-ignore safeguards and permissions, then resend.");
+              current.sendControlNotice("Could not receive the attachment. Maximum file size: 20 MB; inbox quota: 100 files / 100 MB. Check local inbox space, Git-ignore safeguards and permissions, then resend.");
           }
         })();
       }

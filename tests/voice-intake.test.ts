@@ -60,7 +60,7 @@ test("only private owner voice is admitted; audio/video notes remain unsupported
   } finally { await c.stop(); globalThis.fetch = original; }
 });
 
-test("voice reception admits ordinary text, rejects extra attachments and disconnect aborts stale work", async () => {
+test("voice reception admits ordinary text, queues extra attachments and disconnect aborts stale work", async () => {
   const original = globalThis.fetch;
   globalThis.fetch = (async () => new Response(JSON.stringify({ ok: true, result: { message_id: 9 } }))) as typeof fetch;
   const c = new TelegramSessionConnection("placeholder", 42);
@@ -72,7 +72,7 @@ test("voice reception admits ordinary text, rejects extra attachments and discon
   try {
     dispatch(c, { ...base, voice }, input); await tick();
     dispatch(c, { ...base, voice }, input);
-    dispatch(c, { ...base, document: { file_id: "doc" } }, input);
+    dispatch(c, { ...base, message_id: 2, document: { file_id: "doc" } }, input);
     dispatch(c, { ...base, text: "ordinary" }, input);
     assert.equal(admitted.length, 2);
     assert.equal(admitted[1]!.text, "ordinary");

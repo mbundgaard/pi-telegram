@@ -53,11 +53,11 @@ test("native restart is owner/private, refuses duplicates, and never invokes rel
   dispatch("/restart");
   assert.equal(checks, 2);
   assert.deepEqual(notices, [RESTART_UNSUPPORTED, RESTART_UNSUPPORTED]);
-  internal.incoming = {};
+  internal.incomingGroups = { busy: true, cancel() {} };
   dispatch("/restart");
   assert.equal(checks, 2);
   assert.equal(notices.at(-1), RESTART_BUSY);
-  internal.incoming = undefined;
+  internal.incomingGroups = undefined;
 });
 
 test("restart has no capability fallback and is not advertised in native menu or help", async () => {

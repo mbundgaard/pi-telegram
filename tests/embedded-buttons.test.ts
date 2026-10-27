@@ -170,11 +170,11 @@ test("expired and file-download-blocked embedded choices never bypass existing a
   await connection.postEmbedded(content());
   const value = query(1, buttons(requests[0]!.body.rich_message)[0].callback_data);
   let received = 0;
-  (connection as any).incoming = {};
+  (connection as any).incomingGroups = { busy: true, cancel() {} };
   (connection as any).handleQuestionButton(value, () => { received++; });
   assert.equal(received, 0);
   assert.ok((connection as any).question);
-  (connection as any).incoming = undefined;
+  (connection as any).incomingGroups = undefined;
   (connection as any).question.expires = 0;
   (connection as any).handleQuestionButton(value, () => { received++; });
   assert.equal(received, 0);

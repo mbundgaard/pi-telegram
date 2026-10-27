@@ -1,7 +1,13 @@
 import { randomBytes } from "node:crypto";
-import { commitSecret, prepareSecretTarget, SECRET_LIMIT, validSecretName, type SecretTarget } from "./secret-files.ts";
+import { commitSecret, prepareSecretTarget, SECRET_LIMIT, validSecretName, type SecretTarget, SecretPreflightError } from "./secret-files.ts";
 
 export const SECRET_TTL = 5 * 60_000;
+class SecretConnectionError extends Error {}
+function preparationReason(error: unknown): string {
+  if (error instanceof SecretPreflightError) return error.message;
+  if (error instanceof SecretConnectionError) return "Current connection/assignment verification failed or could not be read. Check /ping and local assignment status; destination checks have not run.";
+  return "Preparation could not complete. Request local connection/storage diagnostics.";
+}
 interface Message {
   message_id: number; text?: string; chat: { id: number; type: string };
   from?: { id: number; is_bot: boolean }; forward_origin?: unknown; reply_to_message?: Message;
@@ -49,19 +55,23 @@ export class SecretFlow {
     f.timer = setTimeout(() => { if (this.flow === f) this.cancel(); }, SECRET_TTL); f.timer.unref?.();
     this.io.background((async () => {
       try {
-        if (!await this.options!.verify() || !this.live(f)) throw new Error();
+        await this.verify(f);
         if (name !== undefined) f.target = await prepareSecretTarget(this.options!.cwd, name);
         await this.prompt(f);
-      } catch { this.promptFailed(f); }
+      } catch (e) { this.promptFailed(f, e); }
     })());
   }
-  private promptFailed(f: Flow): void {
+  private promptFailed(f: Flow, error: unknown): void {
     if (this.flow !== f) return;
     const prompting = f.phase === "prompting";
     this.cancel(false);
     this.io.notice(prompting
       ? "Secret prompt delivery could not be confirmed. A prompt may be visible, but this intake is cancelled; do not reply to it. Nothing was saved by this intake. Remove any sensitive replies manually. Check /ping before starting a new /secret intake; no automatic retry."
-      : "Secret intake preparation failed before sending its prompt. Connection verification or destination safety checks failed; the destination may already exist. Nothing was saved by this intake. Check /ping or request local safety repair; do not send secret contents.");
+      : `Secret intake preparation failed before sending its prompt. ${preparationReason(error)} Nothing was saved by this intake; do not send secret contents.`);
+  }
+  private async verify(f: Flow): Promise<void> {
+    try { if (await this.options!.verify() && this.live(f)) return; } catch { /* No native configuration error details. */ }
+    throw new SecretConnectionError();
   }
   private async prompt(f: Flow): Promise<void> {
     if (!this.live(f)) return;
@@ -86,19 +96,19 @@ export class SecretFlow {
     f.phase = "preparing";
     this.io.background((async () => {
       try {
-        if (!await this.options!.verify() || !this.live(f)) throw new Error();
+        await this.verify(f);
         try { f.target = await prepareSecretTarget(this.options!.cwd, name); }
-        catch {
+        catch (e) {
           if (this.live(f)) {
             f.phase = "awaiting";
-            this.io.notice("Destination unavailable or already exists. Nothing was saved. Reply to the filename prompt with another basename, or /cancel for local safety repair.");
+            this.io.notice(`${preparationReason(e)} Nothing was saved. Reply to the filename prompt with another basename, or /cancel for local safety repair.`);
           }
           return;
         }
         if (!this.live(f)) return;
         f.stage = "content";
         await this.prompt(f);
-      } catch { this.promptFailed(f); }
+      } catch (e) { this.promptFailed(f, e); }
     })());
   }
   /** Called before feedback, attachments and commands. Stop and cancel are reserved even in exact replies. */

@@ -344,10 +344,10 @@ test("deletion failure warns without secret or retry; write collision does not d
 });
 
 test("download remains guarded; secret replaces question and callbacks stay inert",  async () => fixture(async f => {
-  (f.connection as any).incoming = { controller: new AbortController(), task: Promise.resolve() };
+  (f.connection as any).incomingGroups = { busy: true, cancel() {} };
   f.dispatch({ text: "/secret dummy.txt" }); await flush(); assert.equal(f.prompt(), undefined);
   assert.ok(f.requests.some((r: any) => r.body.text?.includes("a file download is active")));
-  (f.connection as any).incoming = undefined;
+  (f.connection as any).incomingGroups = undefined;
   await f.connection.post("Question", [{ label: "Yes", reply: "yes" }]);
   await f.ready();
   assert.equal((f.connection as any).question, undefined);

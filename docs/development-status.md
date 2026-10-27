@@ -2,6 +2,16 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
+## 0.6.6 candidate — authorized publication pending
+
+Owner authorized the patch bump, release commit/push and one main-ref Trusted Publishing dispatch after gates. Public latest was 0.6.5 and 0.6.6 returned E404 before preparation. Main independently reviewed grouped intake; release review covered the pending secret and group source/tests. Dependencies remain unchanged.
+
+Supported document/photo groups collect for 800 ms quiet / 3 s maximum, including admission-time enforcement when timers are delayed. Separate groups and single/voice files remain separate. FIFO bounds include running work: 4 batches / 30 files, 10 per group, 120-second active deadline. Sequential saving retains per-file/inbox safeguards; partial success emits one authenticated follow-up with failures/captions, all-failed batches do not reach the model. Stop/disconnect suppresses unfinished receipts, not already-saved files. No group-end marker, durable queue/deduplication, automatic retry or processing is claimed; late/full items require resend.
+
+Secret lifetime checks no longer retain the completed startup attempt's 30-second deadline. Initialization cancellation and ready/current session, lease and saved-assignment checks remain. Sanitized fixed preflight categories distinguish destination failures from connection/assignment verification without native error, path or content leakage. Bare `/secret` does not prepare a destination before its filename prompt. Dummy fixtures reproduce the startup deadline regression and exercise direct/menu saves through startup/reconnect; the owner's reported immediate failure remains unknown/unresolved, not proven fixed. Storage safety gates remain unchanged.
+
+Clean npm ci, typecheck and **288 tests** (none skipped), full/production audits **zero vulnerabilities**, pack **47 files** and diff checks passed on Node22.23.3/npm10.9.9. Local tarball byte verification is required before dispatch. No host installation/reload, live Telegram/secret tests, runtime-private-state inspection or external messages. Live group timing/network behavior, secret privacy/deletion, two-session and host-cancellation limitations remain. Publication evidence will be recorded only after verification; published documentation retains this candidate snapshot.
+
 ## 0.6.5 released — verified
 
 Public npm `latest` is **0.6.5**, released from [`06353ac38af79a6263808bdf04a3cd9a9fb35c5d`](https://github.com/mbundgaard/pi-telegram/commit/06353ac38af79a6263808bdf04a3cd9a9fb35c5d). [CI 40188722832](https://github.com/mbundgaard/pi-telegram/actions/runs/40188722832) and [Trusted Publishing 40188777235](https://github.com/mbundgaard/pi-telegram/actions/runs/40188777235), attempt **1**, succeeded at that exact commit. Dispatch occurred exactly once with `--ref main`, after checking main's exact SHA and successful CI. Registry visibility lagged; only read-only verification was repeated, never publication.

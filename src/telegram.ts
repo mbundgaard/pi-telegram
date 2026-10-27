@@ -1,6 +1,7 @@
 import { randomInt, randomBytes } from "node:crypto";
 import { validateTelegramPhoto } from "./photos.ts";
 import { INCOMING_FILE_LIMIT, safeVoiceMetadata, type IncomingAttachment } from "./incoming-files.ts";
+import { IncomingGroups, type IncomingItem } from "./incoming-groups.ts";
 import { TELEGRAM_DOCUMENT_LIMIT, readTelegramProjectFile, validateDocumentCaption, type TelegramProjectFile } from "./files.ts";
 import { splitTelegramText } from "./messages.ts";
 import { abortable, TransportQueue, TransportQueueError } from "./transport-queue.ts";
@@ -14,7 +15,7 @@ const TELEGRAM_HELP = ["Pi Telegram controls", "", "Normal message: steer active
 type Choices = Array<{ label: string; reply: string }>;
 interface TelegramApiEnvelope<T> { ok: boolean; result?: T; description?: string; error_code?: number }
 interface TelegramMessage {
-  message_id: number; text?: string; caption?: string;
+  message_id: number; text?: string; caption?: string; media_group_id?: string;
   document?: { file_id: string; file_name?: string; file_size?: number };
   photo?: Array<{ file_id: string; file_size?: number; width: number; height: number }>;
   voice?: { file_id: string; duration: number; mime_type?: string; file_size?: number };
@@ -27,7 +28,7 @@ interface TelegramUpdate {
 }
 export interface TelegramInboundMessage {
   text: string; messageId: number; forceSteer?: boolean; forceFollowUp?: boolean;
-  attachment?: IncomingAttachment; downloadSignal?: AbortSignal;
+  attachment?: IncomingAttachment; attachments?: IncomingItem[]; downloadSignal?: AbortSignal;
 }
 export interface TelegramBotCommand { name: string; argument?: string }
 export function parseTelegramBotCommand(text: string): TelegramBotCommand | undefined {
@@ -80,7 +81,8 @@ export class TelegramSessionConnection {
   private stopping = false;
   private generation = 0;
   private lastDraftErrorAt = 0;
-  private incoming?: { controller: AbortController; task: Promise<void> };
+  private incomingGroups?: IncomingGroups;
+  private get incoming(): IncomingGroups | undefined { return this.incomingGroups?.busy ? this.incomingGroups : undefined; }
   private outboundDraft?: Draft;
   private workingStatus?: Working;
   private readonly statusCleanup = new Set<number>();
@@ -590,7 +592,7 @@ export class TelegramSessionConnection {
     if (this.closing) return this.closing;
     // Revoke authority and abort polling BEFORE any network cleanup/drain.
     this.stopping = true; this.cancelChatAction(); this.cancelThinking(); this.generation++; this.operation.abort(); this.controller.abort();
-    this.incoming?.controller.abort(); this.retireDraft();
+    this.incomingGroups?.cancel(); this.retireDraft();
     const status = this.retireWorking(); if (status) this.statusCleanup.add(status.id);
     const questionCleanup = this.question && this.questionCleanup(this.question.messageId, this.question.disabledRichMessage);
     const keyboardIds = [this.updateOffer?.messageId].filter((id): id is number => id !== undefined);
@@ -688,14 +690,18 @@ export class TelegramSessionConnection {
     const document = message.document, photo = message.photo?.slice().sort((a, b) => a.width * a.height - b.width * b.height).at(-1);
     const voice = message.voice;
     if (document || photo || voice) {
-      if (this.incoming) { this.sendControlNotice("A file is still downloading. Please resend this attachment after it finishes."); return; }
       const attachment: IncomingAttachment = document ? { fileId: document.file_id, fileName: document.file_name || "document.bin", size: document.file_size, kind: "document" } : photo ? { fileId: photo.file_id, fileName: "photo.jpg", size: photo.file_size, kind: "photo" } : { fileId: voice!.file_id, fileName: "voice.bin", size: voice!.file_size, kind: "voice", voice: safeVoiceMetadata(voice!.duration, voice!.mime_type) };
-      const controller = new AbortController(), reception = { controller, task: Promise.resolve() }; this.incoming = reception;
-      reception.task = this.track(Promise.resolve().then(() => {
-        const signal = AbortSignal.any([controller.signal, this.controller.signal, AbortSignal.timeout(120_000)]);
-        signal.throwIfAborted();
-        return onMessage({ text: message.caption || "", messageId: message.message_id, attachment, downloadSignal: signal });
-      }).catch(() => { if (!this.stopping) this.sendControlNotice("File reception failed or was cancelled. Please resend the attachment."); }).finally(() => { if (this.incoming === reception) this.incoming = undefined; }));
+      this.incomingGroups ??= new IncomingGroups((items, batchSignal) => {
+        const signal = AbortSignal.any([batchSignal, this.controller.signal]);
+        return this.track(abortable(Promise.resolve().then(() => {
+          signal.throwIfAborted();
+          return onMessage(items.length === 1
+            ? { ...items[0]!, downloadSignal: signal }
+            : { text: "", messageId: items[0]!.messageId, attachments: items, downloadSignal: signal });
+        }), signal));
+      }, text => { if (!this.stopping) this.sendControlNotice(text); });
+      const group = !voice && typeof message.media_group_id === "string" && message.media_group_id.length <= 128 ? message.media_group_id : undefined;
+      this.incomingGroups.add({ text: (message.caption || "").slice(0, 4096), messageId: message.message_id, attachment }, group);
       return;
     }
     if (!message.text) { this.sendControlNotice("Send a document, photo or voice note to attach a file. Voice notes are intake only, without automatic transcription. Audio files, video notes and other incoming media types are not supported yet."); return; }
@@ -736,7 +742,7 @@ export class TelegramSessionConnection {
     if (command?.name === "stop" || text.toLowerCase() === "stop") {
       const incoming = this.incoming, eligible = this.options.canStop?.() ?? false;
       // Invoke the current eligible abort before resetting origins or asynchronous effects.
-      incoming?.controller.abort();
+      incoming?.cancel();
       this.options.onControlStop?.();
       try { if (eligible) onStop(); }
       finally { this.cancelOperations(); }

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, realpath, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, realpath, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { execFileSync } from "node:child_process";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -187,6 +188,58 @@ async function fixture(
     await rm(cwd, { recursive: true, force: true });
   }
 }
+
+test("registered startup and reconnect allow direct/menu secret saves with persisted project assignment", async () =>
+  fixture(async (cwd, network) => {
+    execFileSync("git", ["init", "-q"], { cwd, stdio: "pipe" });
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const originalFetch = globalThis.fetch;
+    const prompts: Array<{ id: number; text: string }> = [];
+    let nextId = 1000;
+    globalThis.fetch = (async (url, init) => {
+      const method = String(url).split("/").at(-1);
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      if (method === "getUpdates" && body.offset !== -1) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+        if (init?.signal?.aborted) throw new Error("aborted");
+        return new Response(JSON.stringify({ ok: true, result: network.inbound.splice(0) }));
+      }
+      if (method === "sendMessage" && body.reply_markup?.force_reply) {
+        prompts.push({ id: ++nextId, text: body.text });
+        return new Response(JSON.stringify({ ok: true, result: { message_id: nextId } }));
+      }
+      return originalFetch(url, init);
+    }) as typeof fetch;
+    const pi = harness(cwd);
+    const wait = async (predicate: () => boolean) => {
+      for (let i = 0; i < 300 && !predicate(); i++) await new Promise(resolve => setTimeout(resolve, 10));
+      assert.ok(predicate(), "expected lifecycle milestone");
+    };
+    const send = (text: string, reply = false) => {
+      const p = prompts.at(-1);
+      network.inbound.push({ update_id: ++nextId, message: {
+        message_id: nextId, text, chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
+        ...(reply ? { reply_to_message: { message_id: p!.id, text: p!.text, chat: { id: 42, type: "private" }, from: { id: 111, is_bot: true } } } : {}),
+      } });
+    };
+    try {
+      for (let cycle = 0; cycle < 2; cycle++) {
+        await pi.emit("session_start", { reason: cycle ? "reload" : "startup" });
+        for (let i = 0; i < 3; i++) {
+          const name = `dummy-${cycle}-${i}.txt`, before = prompts.length;
+          send(i % 2 ? "/secret" : `/secret ${name}`);
+          await wait(() => prompts.length === before + 1);
+          if (i % 2) { send(name, true); await wait(() => prompts.length === before + 2); }
+          send("DUMMY-lifecycle-only", true);
+          await wait(() => pi.sent.length === cycle * 3 + i + 1);
+          assert.equal(await readFile(join(cwd, ".pi/telegram-secrets", name), "utf8"), "DUMMY-lifecycle-only");
+          assert.ok(!pi.sent.at(-1)!.includes("DUMMY-lifecycle-only"));
+        }
+        await pi.emit("session_shutdown", { reason: "reload" });
+      }
+      assert.ok(!network.messages.some(text => text.includes("preparation failed")));
+    } finally { await pi.emit("session_shutdown"); }
+  }));
 
 test("registered compaction hooks notify while busy without model input and recheck disk assignment", async () =>
   fixture(async (cwd, network) => {
