@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.6 candidate — authorized publication pending
+## Current 0.6.6 release — verified
+
+- Public npm latest **0.6.6**, release commit `67d3f91228ac7a758f4e7ed4d755188f1169026c`. CI **40494051971** and Trusted Publishing **40494178057**, attempt **1**, succeeded. Exactly one main-ref dispatch; registry lag resolved read-only, no retry.
+- All **47 published files** byte-match the release commit. SHA-1 `ea5f7fb33763db06effedc0a72b590ec4c4b35f2`; integrity `sha512-KMXCrbZ/qL34wX6IqxIUunvoFSTcJCf3qLBDlu8CMqR74+36OhCX1e/9DZaf7urB/pKxg/pmgeV095BOvwfP7w==`. Computed SHA-512 matches decoded SLSA subject; commit/repository/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.
+- Clean ci/typecheck/**288 tests** (none skipped), full/production audit zero vulnerabilities, pack47/diff/local byte checks passed. Dependencies unchanged; no host install/reload, live Telegram/secret testing, runtime-private-state inspection or external messages. Owner's immediate secret failure remains unresolved; live group timing/network, privacy/deletion, two-session and host-cancellation limitations remain. Published docs retain the candidate snapshot. Do not republish 0.6.6.
+
+## Historical 0.6.6 candidate — authorized publication pending
 
 - Owner authorized patch bump, release commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest is 0.6.5; 0.6.6 was absent. Main independently reviewed grouped intake; release review covered all pending secret/group source and tests. Historical checkpoints below retain their original review status.
 - Scope: bounded grouped incoming files, completed-startup deadline removal from secret lifetime checks, and sanitized preflight diagnostics. Dependencies unchanged. The owner's immediate secret failure remains unresolved; source regression/tests do not prove its live cause.

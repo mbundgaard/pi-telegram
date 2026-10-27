@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.6 candidate — authorized publication pending
+## 0.6.6 released — verified
+
+Public npm `latest` is **0.6.6**, released from [`67d3f91228ac7a758f4e7ed4d755188f1169026c`](https://github.com/mbundgaard/pi-telegram/commit/67d3f91228ac7a758f4e7ed4d755188f1169026c). [CI 40494051971](https://github.com/mbundgaard/pi-telegram/actions/runs/40494051971) and [Trusted Publishing 40494178057](https://github.com/mbundgaard/pi-telegram/actions/runs/40494178057), attempt **1**, succeeded at that commit. Exactly one `--ref main` dispatch followed verified remote-main identity and successful CI. Registry lag resolved through read-only checks, with no redispatch.
+
+All **47 published files** byte-match the release commit. SHA-1: `ea5f7fb33763db06effedc0a72b590ec4c4b35f2`; computed SHA-512 matches registry integrity `sha512-KMXCrbZ/qL34wX6IqxIUunvoFSTcJCf3qLBDlu8CMqR74+36OhCX1e/9DZaf7urB/pKxg/pmgeV095BOvwfP7w==` and the decoded SLSA subject. Payload linkage matches the commit, repository `mbundgaard/pi-telegram`, `.github/workflows/publish.yml`, main ref and run **40494178057**, attempt **1**. This is hash/payload verification, not independent DSSE/certificate-chain/Rekor cryptographic verification.
+
+Clean npm ci, typecheck, **288 tests** (none skipped), full/production audits zero vulnerabilities, pack47, diff checks and all47 local tarball byte comparisons passed. Dependencies unchanged. No running-host install/reload, live Telegram/secret testing, runtime-private-state inspection or external messages. The reported immediate secret failure remains unresolved; live group timing/network, privacy/deletion, two-session and host-cancellation limitations remain. Published docs retain their candidate snapshot; this evidence-only checkpoint does not alter the artifact. Do not republish 0.6.6.
+
+## Historical 0.6.6 candidate — authorized publication pending
 
 Owner authorized the patch bump, release commit/push and one main-ref Trusted Publishing dispatch after gates. Public latest was 0.6.5 and 0.6.6 returned E404 before preparation. Main independently reviewed grouped intake; release review covered the pending secret and group source/tests. Dependencies remain unchanged.
 
