@@ -1,9 +1,8 @@
 name: Publish npm package
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
+  push:
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -13,14 +12,38 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the triggering tag's exact commit, never the current main tip.
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           package-manager-cache: false
+      - name: Verify stable release tag and manifests
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+          assert.equal(process.env.GITHUB_EVENT_NAME, 'push', 'Release requires a tag push');
+          assert.equal(process.env.GITHUB_REF_TYPE, 'tag', 'Release requires a tag');
+          assert.equal(typeof pkg.version, 'string');
+          assert.match(pkg.version, /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?![\s\S])/, 'Only stable x.y.z versions are supported');
+          assert.equal(process.env.GITHUB_REF, `refs/tags/v${pkg.version}`, 'Tag must exactly match package version');
+          assert.equal(lock.version, pkg.version, 'Lockfile version mismatch');
+          assert.equal(lock.packages?.['']?.version, pkg.version, 'Lockfile root version mismatch');
+          assert.equal(lock.name, pkg.name, 'Lockfile name mismatch');
+          assert.equal(lock.packages?.['']?.name, pkg.name, 'Lockfile root name mismatch');
+          NODE
       - run: npm install --global npm@latest
       - run: npm ci
       - run: npm run validate
+      - run: npm audit --audit-level=moderate
+      - run: npm run pack:check
       - name: Publish through npm Trusted Publishing
         shell: bash
         run: |

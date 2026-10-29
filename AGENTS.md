@@ -11,7 +11,14 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## Current 0.6.7 release — verified
+## Current 0.6.8 candidate — authorized tag publication pending
+
+- Owner authorized the tag-driven workflow and its first release: scoped version/docs commit and main push, followed by one annotated `v0.6.8` tag push after validation and main CI. Registry 0.6.8 and remote tag were absent; 0.6.7 is already verified published and must not be retagged.
+- `.github/workflows/publish.yml` now accepts only tag pushes, checks out the event SHA and rejects anything except exact stable tag/package/lockfile matches. Manual dispatch and release-event triggers are removed; clean install, validation, audit and pack checks precede token-free OIDC publication. All 23 offline guard cases passed. No runtime/dependency changes.
+- Clean npm ci, typecheck and **290 tests** (none skipped) passed on Node22.23.3/npm10.9.9; full/production audits zero vulnerabilities, pack47/diff and local tarball byte checks passed. No host install/reload, live bots or runtime-secret inspection.
+- Future releases follow `docs/releasing.md`: obtain authorization, bump/review/validate, commit/push main and verify CI, then push one immutable matching annotated version tag. No blind rerun, tag rewrite/deletion or fallback publication. Tag OIDC acceptance remains unverified until this first run succeeds.
+
+## Historical 0.6.7 release — verified
 
 - Public npm latest **0.6.7**, release commit `7d5c3221aba934326c74f7efd43f70ecf1d99e27`. CI **40837224634** and Trusted Publishing **40837337190**, attempt **1**, succeeded. Exactly one main-ref dispatch; registry propagation resolved read-only, without retry.
 - All **47 published files** byte-match the release commit. SHA-1 `158db9f542a2e84c2bc79e8a79fdbaf368aba3df`; integrity `sha512-B+JxJwrGIRYkDhOPDByDRJsFDycykBVJBFVGtH61Z+z4UgyrbWFihV4ur1iFKr/0GmZN0LUos2iS2/du92Ej9A==`. Computed SHA-512 matches decoded SLSA subject; commit/repository/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.
@@ -359,8 +366,8 @@ Last verified against release commit `0bfe2ae`:
 
 1. Two-session smoke testing remains unperformed; the owner declined it and accepted that release limitation. Perform it only if separately requested.
 2. Review removal/revocation of any old local npm publishing credentials through secure local/account UI. Never inspect or print token values in model context. OIDC publication no longer requires a local npm token.
-3. The Trusted Publisher mapping is GitHub owner `comput-sh`, repository `pi-telegram`, workflow filename `publish.yml`, no GitHub environment name. Successful 0.6.0 publication verified this mapping; exact registry/artifact and decoded provenance linkage are recorded above.
-4. For an authorized future release, bump the version, validate, push, and dispatch `.github/workflows/publish.yml`. Do not republish 0.2.0, 0.2.1, 0.2.2, 0.2.3, 0.2.4, or 0.2.5. This workflow also runs on a published GitHub release; avoid duplicate publication triggers.
+3. Current repository/Trusted Publisher identity is `mbundgaard/pi-telegram`, workflow filename `publish.yml`, no GitHub environment name. Historical `comput-sh` evidence remains above; do not use that old identity for new mapping instructions.
+4. For an authorized future release, follow `docs/releasing.md`: bump, validate, commit/push main, verify CI, then create/push one matching immutable annotated version tag. Tag push is the only publication trigger; manual dispatch and GitHub release triggers are removed. Never republish an existing version or retry uncertain publication without an explicit recovery decision.
 5. Verify workflow success, public registry version, and provenance before updating this checkpoint. The published 0.2.5 tarball additionally includes reconnect recovery and phase-independent public-text streaming; this post-publication checkpoint update is documentation-only.
 
 Do not initialize Git, commit, push, tag, or publish without explicit user authorization for that operation. Documentation review alone is not authorization to publish.

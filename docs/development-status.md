@@ -2,6 +2,14 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
+## 0.6.8 candidate — authorized tag publication pending
+
+Owner authorized switching to tag automation and running the first new-version release after verified 0.6.7 publication. npm 0.6.8 and remote `v0.6.8` were absent. The reviewed workflow is tag-only, checks out the event SHA, validates exact stable tag/package/lockfile versions and names, and runs clean install, validation, audit and pack checks before unchanged token-free OIDC/provenance publication. All 23 offline guard cases passed. No runtime or dependency changes.
+
+Clean npm ci, typecheck and **290 tests** (none skipped) passed on Node22.23.3/npm10.9.9. Full/production audits found zero vulnerabilities; pack47, diff and local tarball byte checks passed. Dependencies unchanged.
+
+The current release procedure is [tag-driven](releasing.md): reviewed main commit/push and successful CI, then one annotated matching version tag push. Manual dispatch and GitHub release triggers are removed; immutable tags and no-blind-retry recovery apply. Main-ref OIDC history does not prove tag-ref acceptance; live evidence follows this run. No host install/reload, live bots, runtime secret inspection or external messages; existing Windows, privacy/deletion, two-session, network and host-cancellation limitations remain.
+
 ## 0.6.7 released — verified
 
 Public npm `latest` is **0.6.7**, released from [`7d5c3221aba934326c74f7efd43f70ecf1d99e27`](https://github.com/mbundgaard/pi-telegram/commit/7d5c3221aba934326c74f7efd43f70ecf1d99e27). [CI 40837224634](https://github.com/mbundgaard/pi-telegram/actions/runs/40837224634) and [Trusted Publishing 40837337190](https://github.com/mbundgaard/pi-telegram/actions/runs/40837337190), attempt **1**, succeeded at that commit. Exactly one `--ref main` dispatch followed remote-main verification and successful CI. Initial registry lag resolved through read-only polling, without redispatch.

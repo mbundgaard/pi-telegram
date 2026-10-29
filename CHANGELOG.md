@@ -2,6 +2,11 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.8 — tag-driven releases
+
+- Publish automatically from one matching stable version tag, checking out its exact commit and validating package/lockfile versions before clean install, tests, audit and package checks. Manual dispatch and GitHub release publication triggers are removed.
+- Document immutable tags, release authorization, verification and failure recovery in `docs/releasing.md`. No runtime or dependency changes; publication does not install or reload Pi. Existing live-testing limitations remain.
+
 ## 0.6.7 — replace saved secrets safely
 
 - Reusing a `/secret` filename replaces a safe regular single-link file without another confirmation, only after authenticated contents arrive. A private same-directory temporary file is written and fsynced before atomic rename; starting or cancelling intake never truncates the previous file. Precommit failure preserves previous contents, with no unlink/truncate fallback.
