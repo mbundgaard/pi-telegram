@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.7 candidate — authorized publication pending
+## Current 0.6.7 release — verified
+
+- Public npm latest **0.6.7**, release commit `7d5c3221aba934326c74f7efd43f70ecf1d99e27`. CI **40837224634** and Trusted Publishing **40837337190**, attempt **1**, succeeded. Exactly one main-ref dispatch; registry propagation resolved read-only, without retry.
+- All **47 published files** byte-match the release commit. SHA-1 `158db9f542a2e84c2bc79e8a79fdbaf368aba3df`; integrity `sha512-B+JxJwrGIRYkDhOPDByDRJsFDycykBVJBFVGtH61Z+z4UgyrbWFihV4ur1iFKr/0GmZN0LUos2iS2/du92Ej9A==`. Computed SHA-512 matches decoded SLSA subject; commit/repository/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.
+- Clean ci/typecheck/**290 tests** (none skipped), full/production audit zero vulnerabilities, pack47/diff/local byte checks passed. Dependencies unchanged; no host install/reload, live bot/secret tests, runtime-secret inspection or external messages. Windows replacement, privacy/deletion, two-session, network and host-cancellation limits remain; original owner failure is not proven fixed. Do not republish 0.6.7. Published docs retain the candidate snapshot.
+
+## Historical 0.6.7 candidate — authorized publication pending
 
 - Owner authorized patch bump, scoped release commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest was 0.6.6 and 0.6.7 absent. Independent review of all pending source, guidance and tests passed; authentication/upload safeguards remain unchanged.
 - Clean npm ci, typecheck and **290 tests** (none skipped), full/production audits zero vulnerabilities, pack47 and diff checks passed. Dependencies unchanged. No host install/reload, runtime secret inspection or live tests. Publication evidence follows verification.
@@ -22,7 +28,7 @@ Prefer native Telegram drafts, Rich Messages, commands, documents, media, and co
 - Precommit cancellation/failure preserves previous contents. Portable Node rename is used without unlink/truncate fallback; platform sharing/access failures remain generic save failures. Windows behavior is not live-tested, modes are not ACL guarantees, directory-entry crash durability and hostile concurrent filesystem/Git mutation remain outside the contract.
 - Dummy-fixture validation and final counts are recorded in `docs/development-status.md`. No runtime secret inspection, live bot test, external message, install/reload, version/dependency change, commit/push/publication. Main must review before activation.
 
-## Current 0.6.6 release — verified
+## Historical 0.6.6 release — verified
 
 - Public npm latest **0.6.6**, release commit `67d3f91228ac7a758f4e7ed4d755188f1169026c`. CI **40494051971** and Trusted Publishing **40494178057**, attempt **1**, succeeded. Exactly one main-ref dispatch; registry lag resolved read-only, no retry.
 - All **47 published files** byte-match the release commit. SHA-1 `ea5f7fb33763db06effedc0a72b590ec4c4b35f2`; integrity `sha512-KMXCrbZ/qL34wX6IqxIUunvoFSTcJCf3qLBDlu8CMqR74+36OhCX1e/9DZaf7urB/pKxg/pmgeV095BOvwfP7w==`. Computed SHA-512 matches decoded SLSA subject; commit/repository/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.

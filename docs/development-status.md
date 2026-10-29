@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.7 candidate — authorized publication pending
+## 0.6.7 released — verified
+
+Public npm `latest` is **0.6.7**, released from [`7d5c3221aba934326c74f7efd43f70ecf1d99e27`](https://github.com/mbundgaard/pi-telegram/commit/7d5c3221aba934326c74f7efd43f70ecf1d99e27). [CI 40837224634](https://github.com/mbundgaard/pi-telegram/actions/runs/40837224634) and [Trusted Publishing 40837337190](https://github.com/mbundgaard/pi-telegram/actions/runs/40837337190), attempt **1**, succeeded at that commit. Exactly one `--ref main` dispatch followed remote-main verification and successful CI. Initial registry lag resolved through read-only polling, without redispatch.
+
+All **47 published files** byte-match the release commit. Downloaded SHA-1 is `158db9f542a2e84c2bc79e8a79fdbaf368aba3df`; registry integrity is `sha512-B+JxJwrGIRYkDhOPDByDRJsFDycykBVJBFVGtH61Z+z4UgyrbWFihV4ur1iFKr/0GmZN0LUos2iS2/du92Ej9A==`. Computed SHA-512 matches both registry integrity and the decoded SLSA subject. Decoded provenance identifies the exact commit, `mbundgaard/pi-telegram`, `.github/workflows/publish.yml`, main ref and publish run **40837337190**, attempt **1**. This is hash/payload linkage verification, not independent DSSE/certificate-chain/Rekor verification.
+
+Clean npm ci, typecheck and **290 tests** (none skipped) passed on Node **22.23.3** / npm **10.9.9**; full/production audits found zero vulnerabilities, pack47 and diff checks passed, and all local package files byte-matched the tree before commit. Dependencies unchanged. No host install/reload, live Telegram/secret tests, runtime-secret inspection or external messages. Windows replacement remains untested live; privacy/deletion, two-session, network and host-cancellation limits remain. The owner's original immediate failure is not proven fixed. Published docs retain their candidate snapshot; this later evidence does not change the immutable artifact. Do not republish **0.6.7**.
+
+## Historical 0.6.7 candidate — authorized publication pending
 
 Owner authorized patch bump, scoped release commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest was 0.6.6 and 0.6.7 was absent. Independent release review covered the complete pending source, guidance and test diff: safe-target revalidation and authenticated content guards remain; no prompt-time truncate or unlink fallback, and upload safeguards are unchanged. No host API changes were needed.
 
