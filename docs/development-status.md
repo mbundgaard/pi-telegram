@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.8 candidate — authorized tag publication pending
+## 0.6.8 released — tag automation verified
+
+Public npm `latest` is **0.6.8**, from release commit [`91b4ff332b9fe4c0dbf627049e1810cfc2331609`](https://github.com/mbundgaard/pi-telegram/commit/91b4ff332b9fe4c0dbf627049e1810cfc2331609) and annotated tag `v0.6.8` (object `fcc7fb6d05d78047aeaf2dfd3412355e943f689f`). [Main CI 40838100765](https://github.com/mbundgaard/pi-telegram/actions/runs/40838100765) passed before the one tag push. [Trusted Publishing 40838216695](https://github.com/mbundgaard/pi-telegram/actions/runs/40838216695), attempt **1**, succeeded from that tag/commit with event `push`. No manual dispatch, GitHub release trigger, tag rewrite or publication retry; initial registry lag resolved read-only. This verifies tag-ref OIDC for this release.
+
+All **47 published files** byte-match the tagged commit. SHA-1: `5c398d31348c370320fd0a7f63f047fd779af5af`; integrity: `sha512-9pfzAUWvR7YBLi7fbAlm6iGcecJ4zzf+AXaCB9O1ZLPFVvgTX8ZqSMKl7b8L4NG858LI/09vlqExrkDiZ5f/kQ==`. Computed SHA-512 matches registry integrity and decoded SLSA subject. Payload linkage matches `refs/tags/v0.6.8`, exact commit, `mbundgaard/pi-telegram`, `.github/workflows/publish.yml` and run **40838216695**, attempt **1**. No independent DSSE/certificate-chain/Rekor validation is claimed.
+
+Clean ci/typecheck/**290 tests** (none skipped), full/production audits zero vulnerabilities, pack47/diff/local byte checks and all 23 offline guard cases passed. No runtime/dependency changes, host install/reload, live bots, runtime-secret inspection or external messages. Existing live-testing limitations remain. Published docs retain the candidate snapshot; this post-publication evidence does not alter the artifact. Do not republish or rewrite `v0.6.8`. Future releases follow [the tag-driven procedure](releasing.md).
+
+## Historical 0.6.8 candidate — authorized tag publication pending
 
 Owner authorized switching to tag automation and running the first new-version release after verified 0.6.7 publication. npm 0.6.8 and remote `v0.6.8` were absent. The reviewed workflow is tag-only, checks out the event SHA, validates exact stable tag/package/lockfile versions and names, and runs clean install, validation, audit and pack checks before unchanged token-free OIDC/provenance publication. All 23 offline guard cases passed. No runtime or dependency changes.
 

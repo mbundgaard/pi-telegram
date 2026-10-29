@@ -11,7 +11,14 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## Current 0.6.8 candidate — authorized tag publication pending
+## Current 0.6.8 release — verified tag automation
+
+- Public npm latest **0.6.8**, release commit `91b4ff332b9fe4c0dbf627049e1810cfc2331609`, annotated tag `v0.6.8` (tag object `fcc7fb6d05d78047aeaf2dfd3412355e943f689f`). CI **40838100765** and tag-push Trusted Publishing **40838216695**, attempt **1**, succeeded. Exactly one tag push; no manual dispatch, release trigger or retry. Registry lag resolved read-only.
+- All **47 published files** byte-match the release commit. SHA-1 `5c398d31348c370320fd0a7f63f047fd779af5af`; integrity `sha512-9pfzAUWvR7YBLi7fbAlm6iGcecJ4zzf+AXaCB9O1ZLPFVvgTX8ZqSMKl7b8L4NG858LI/09vlqExrkDiZ5f/kQ==`. Computed SHA-512 matches decoded SLSA subject; tag/repository/commit/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.
+- Clean ci/typecheck/**290 tests** (none skipped), full/production audit zero vulnerabilities, pack47/diff/local byte checks passed. All 23 offline guard cases passed. No runtime/dependency changes, host install/reload, live bots, runtime-secret inspection or external messages. Prior live-testing limitations remain. Do not republish or rewrite `v0.6.8`; published docs retain their candidate snapshot.
+- Future authorized releases follow `docs/releasing.md`: reviewed bump/validation, commit/push main and successful CI, then one immutable matching annotated version tag push. Tag-ref OIDC is now verified for this release; no manual dispatch or GitHub release trigger.
+
+## Historical 0.6.8 candidate — authorized tag publication pending
 
 - Owner authorized the tag-driven workflow and its first release: scoped version/docs commit and main push, followed by one annotated `v0.6.8` tag push after validation and main CI. Registry 0.6.8 and remote tag were absent; 0.6.7 is already verified published and must not be retagged.
 - `.github/workflows/publish.yml` now accepts only tag pushes, checks out the event SHA and rejects anything except exact stable tag/package/lockfile matches. Manual dispatch and release-event triggers are removed; clean install, validation, audit and pack checks precede token-free OIDC publication. All 23 offline guard cases passed. No runtime/dependency changes.

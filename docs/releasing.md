@@ -69,11 +69,14 @@ publisher mapping change: retain `mbundgaard/pi-telegram`, `publish.yml`, the
 existing blank environment and permission to publish directly. Historical
 `comput-sh` instructions are not the current repository identity.
 
-This is documentation-based compatibility evidence, **not a successful tag OIDC
-publication test** or an inspection of current account settings. Main-ref
-publication history does not prove tag-ref acceptance. If repository/environment
-policies restrict refs, an owner must review those separately; do not add secrets
-or weaken authentication to work around a rejection.
+The first tag-driven release, **0.6.8**, succeeded through tag push run
+[40838216695](https://github.com/mbundgaard/pi-telegram/actions/runs/40838216695),
+attempt 1. Public registry/artifact and decoded SLSA linkage verify
+`refs/tags/v0.6.8` at commit `91b4ff332b9fe4c0dbf627049e1810cfc2331609`.
+This verifies tag-ref OIDC for that release, not an inspection of account settings
+or a guarantee about future policy changes. If repository/environment policies
+restrict refs, an owner must review those separately; do not add secrets or
+weaken authentication to work around a rejection.
 
 ## Offline guard regression check
 
@@ -125,5 +128,5 @@ try {
 NODE
 ```
 
-These checks do not emulate GitHub's scheduler or npm OIDC. The first separately
-authorized new-version tag release remains the live end-to-end verification.
+These checks do not emulate GitHub's scheduler or npm OIDC. The separately
+authorized 0.6.8 tag release supplied the live publication evidence above.
