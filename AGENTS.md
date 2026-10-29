@@ -11,6 +11,17 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## 0.6.7 candidate — authorized publication pending
+
+- Owner authorized patch bump, scoped release commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest was 0.6.6 and 0.6.7 absent. Independent review of all pending source, guidance and tests passed; authentication/upload safeguards remain unchanged.
+- Clean npm ci, typecheck and **290 tests** (none skipped), full/production audits zero vulnerabilities, pack47 and diff checks passed. Dependencies unchanged. No host install/reload, runtime secret inspection or live tests. Publication evidence follows verification.
+
+## Historical unreleased authorized secret replacement — Main review required
+
+- Owner explicitly authorized same-filename replacement without another confirmation, superseding historical no-overwrite/no-clobber promises for this new flow only. Safe regular single-link targets now pass preflight; authenticated contents commit through a private same-directory temporary file, fsync and rename, never prompt-time truncation. Successful replacement creates a new 0600 inode; unsafe paths, symlinks, directories and hard-linked targets remain refused, and upload protections are unchanged.
+- Precommit cancellation/failure preserves previous contents. Portable Node rename is used without unlink/truncate fallback; platform sharing/access failures remain generic save failures. Windows behavior is not live-tested, modes are not ACL guarantees, directory-entry crash durability and hostile concurrent filesystem/Git mutation remain outside the contract.
+- Dummy-fixture validation and final counts are recorded in `docs/development-status.md`. No runtime secret inspection, live bot test, external message, install/reload, version/dependency change, commit/push/publication. Main must review before activation.
+
 ## Current 0.6.6 release — verified
 
 - Public npm latest **0.6.6**, release commit `67d3f91228ac7a758f4e7ed4d755188f1169026c`. CI **40494051971** and Trusted Publishing **40494178057**, attempt **1**, succeeded. Exactly one main-ref dispatch; registry lag resolved read-only, no retry.

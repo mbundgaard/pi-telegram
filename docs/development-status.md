@@ -2,6 +2,20 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
+## 0.6.7 candidate — authorized publication pending
+
+Owner authorized patch bump, scoped release commit/push and one main-ref Trusted Publishing dispatch after gates. Registry latest was 0.6.6 and 0.6.7 was absent. Independent release review covered the complete pending source, guidance and test diff: safe-target revalidation and authenticated content guards remain; no prompt-time truncate or unlink fallback, and upload safeguards are unchanged. No host API changes were needed.
+
+Fresh clean npm ci, typecheck and **290 tests** (none skipped), full and production audits zero vulnerabilities, pack **47 files**, and diff checks passed. Dependencies are unchanged. No runtime secret inspection, live bot/API secret tests, host install/reload or external messages. Windows, live privacy/deletion, two-session, network and host-cancellation limitations remain; the owner's original immediate failure is not proven fixed. Publication evidence will follow verification.
+
+## Historical unreleased owner-authorized secret replacement — review pending
+
+Explicit authorization permits same-filename replacement without another confirmation. Preflight accepts safe regular single-link files; content receipt retains exact current owner/private/prompt and assignment guards. A new private same-directory temporary is written/fsynced/closed, target safety is rechecked, then rename replaces the directory entry. No prompt-time truncate, unlink fallback or mutation of an existing inode. Symlinks, directories and hard-linked targets are refused; successful replacement uses a new 0600 inode even when the previous file had broader modes. Precommit cancellation/failure preserves old contents. Generic save errors no longer incorrectly suggest that existence alone is a blocker.
+
+Same-directory Node rename supports replacement on POSIX and Windows, but sharing/access restrictions can fail safely; no Windows live validation or ACL guarantee is claimed. Directory-entry crash durability and isolation from hostile concurrent filesystem/Git mutation remain unsupported. Earlier no-clobber statements below describe historical releases only. Mandatory/skill/user guidance now describes replacement and uncertain-save precautions.
+
+Validation: typecheck and **290 tests** pass, none skipped; audit zero vulnerabilities, pack **47 files**, diff check passes. Dummy fixtures cover repeated direct/menu replacement, exact bytes, empty/oversize rejection, prompt/cancellation preservation, old open inode preservation, modes and unsafe targets. An initial skill-size check failed after added guidance; guidance was shortened and the full suite passed. No runtime secrets inspected, live bot/API test, external messages, install/reload, version/dependency change, commit/push/publication. Main review is required before activation.
+
 ## 0.6.6 released — verified
 
 Public npm `latest` is **0.6.6**, released from [`67d3f91228ac7a758f4e7ed4d755188f1169026c`](https://github.com/mbundgaard/pi-telegram/commit/67d3f91228ac7a758f4e7ed4d755188f1169026c). [CI 40494051971](https://github.com/mbundgaard/pi-telegram/actions/runs/40494051971) and [Trusted Publishing 40494178057](https://github.com/mbundgaard/pi-telegram/actions/runs/40494178057), attempt **1**, succeeded at that commit. Exactly one `--ref main` dispatch followed verified remote-main identity and successful CI. Registry lag resolved through read-only checks, with no redispatch.

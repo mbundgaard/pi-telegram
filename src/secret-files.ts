@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
-import { constants, lstatSync, realpathSync, openSync, closeSync, writeFileSync, fsyncSync, linkSync, unlinkSync, fstatSync } from "node:fs";
+import { constants, lstatSync, realpathSync, openSync, closeSync, writeFileSync, fsyncSync, renameSync, unlinkSync, fstatSync } from "node:fs";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -18,7 +18,6 @@ const preflightMessages = {
   storage: "Secret storage path is unavailable or unsafe. Request local directory/symlink/access repair; changing the filename will not repair storage.",
   permissions: "Secret storage directory permissions are not private. Request local permission repair; no permissions were changed automatically.",
   ignore: "Secret storage ignore file is unsafe or has unexpected contents. Request local ignore-file repair.",
-  exists: "Secret destination already exists. Choose another filename; existing files are never overwritten.",
   git: "Secret storage Git safety verification could not complete. Request local Git availability/access repair.",
   tracked: "Secret storage contains Git-tracked entries. Request local tracking repair before retrying.",
   unignored: "Secret destination or temporary files are not Git-ignored. Request local ignore-rule repair.",
@@ -54,7 +53,10 @@ export async function prepareSecretTarget(cwd: string, name: string, expectedRoo
     if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || await readFile(ignore, "utf8") !== ignoreText) throw new Error();
     stage = "storage";
     const path = join(dir, name);
-    try { await lstat(path); throw new SecretPreflightError("exists"); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+    try {
+      const existing = await lstat(path);
+      if (!existing.isFile() || existing.isSymbolicLink() || existing.nlink !== 1) throw new Error();
+    } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
     stage = "git";
     const options = { cwd: root, windowsHide: true, timeout: 5000 };
     let git = true;
@@ -76,7 +78,8 @@ export async function prepareSecretTarget(cwd: string, name: string, expectedRoo
   } catch (e) { throw e instanceof SecretPreflightError ? e : new SecretPreflightError(stage); }
 }
 /** Bounded synchronous commit prevents JS Stop/expiry from interleaving after the final guard.
- * Atomic hard-link publication never overwrites; temporary file is owned by this call only.
+ * Same-directory rename atomically replaces a safe regular destination; never truncate it.
+ * Rename failures (including platform sharing restrictions) preserve the old destination.
  * Like other project storage, this is not isolation against a hostile local filesystem writer.
  */
 export function commitSecret(target: SecretTarget, text: string, current: () => boolean): { path: string; size: number } {
@@ -96,7 +99,12 @@ export function commitSecret(target: SecretTarget, text: string, current: () => 
     if (fstatSync(fd).nlink !== 1) throw new Error();
     writeFileSync(fd, text, "utf8"); fsyncSync(fd); closeSync(fd); fd = undefined;
     if (!current()) throw new Error();
-    linkSync(temp, target.path);
+    try {
+      const existing = lstatSync(target.path);
+      if (!existing.isFile() || existing.isSymbolicLink() || existing.nlink !== 1) throw new Error();
+    } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+    renameSync(temp, target.path);
+    temporary = undefined;
     return { path: `${SECRET_DIRECTORY}/${target.name}`, size };
   } catch { throw new Error("Secret could not be saved. No automatic retry was made."); }
   finally {

@@ -2,6 +2,12 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.7 — replace saved secrets safely
+
+- Reusing a `/secret` filename replaces a safe regular single-link file without another confirmation, only after authenticated contents arrive. A private same-directory temporary file is written and fsynced before atomic rename; starting or cancelling intake never truncates the previous file. Precommit failure preserves previous contents, with no unlink/truncate fallback.
+- Refuse symlinks, directories and hard-linked targets; retain owner/private/exact-prompt, assignment, Git and upload safeguards. Update user and agent guidance, including caution against retrying uncertain saves.
+- Dependencies unchanged. Windows replacement is not live-tested; modes are not ACL guarantees. Live secret privacy/deletion, network behavior and the owner's original immediate failure remain unverified/unresolved. No host installation or reload is included.
+
 ## 0.6.6 — grouped incoming files and secret readiness
 
 - Collect supported document/photo groups into one authenticated follow-up with saved paths, byte counts, captions and individual failures. Collection is best effort: 800 ms quiet / 3 s maximum, with no Telegram end marker. Late/full items require resend. Separate groups and single/voice attachments stay separate.

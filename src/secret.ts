@@ -146,7 +146,7 @@ export class SecretFlow {
         const target = await prepareSecretTarget(this.options!.cwd, f.target!.name, f.target!.root);
         if (!await this.options!.verify() || !this.live(f)) throw new Error();
         result = commitSecret(target, text, () => this.live(f));
-      } catch { if (this.flow === f) { this.cancel(false); this.io.notice("Secret was not saved. Destination may exist or require local safety repair. Remove sensitive chat messages manually; no automatic retry."); } return; }
+      } catch { if (this.flow === f) { this.cancel(false); this.io.notice("Secret was not saved. Storage may require local safety repair. Remove sensitive chat messages manually; no automatic retry."); } return; }
       // Commit is complete. Retain saving fence during bounded deletion; duplicates cannot write again.
       let deleted = true;
       for (const id of [message.message_id, f.promptId!]) {

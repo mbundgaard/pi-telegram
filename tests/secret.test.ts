@@ -55,7 +55,7 @@ test("successive direct and menu saves remain available before, during and after
   const handlers = new Map<string, Function>();
   const route = registerResponseRouting({ on: (name: string, handler: Function) => handlers.set(name, handler) } as unknown as ExtensionAPI, () => f.connection);
   for (let i = 0; i < 6; i++) {
-    const name = `repeat-${i}.txt`;
+    const name = "repeat.txt";
     if (i % 2) {
       f.dispatch({ text: "/secret" });
       await wait(() => (f.connection as any).secret.flow?.phase === "awaiting");
@@ -82,6 +82,21 @@ test("successive direct and menu saves remain available before, during and after
   assert.ok(!JSON.stringify(f.requests).includes("DUMMY-repeat"));
 }));
 
+test("existing secret survives prompt, invalid contents and cancellation without confirmation", async () => fixture(async f => {
+  await prepareSecretTarget(f.cwd, "dummy.txt");
+  const file = join(f.cwd, SECRET_DIRECTORY, "dummy.txt");
+  await writeFile(file, "DUMMY-old");
+  for (const cancel of ["/cancel", "/stop"]) {
+    const p = await f.ready();
+    assert.equal(await readFile(file, "utf8"), "DUMMY-old");
+    f.dispatch({ text: "", reply_to_message: p }); await flush();
+    assert.equal(await readFile(file, "utf8"), "DUMMY-old");
+    f.dispatch({ text: cancel }); await flush();
+    assert.equal(await readFile(file, "utf8"), "DUMMY-old");
+  }
+  assert.equal(f.inputs.length, 0);
+}));
+
 test("a fresh secret command replaces a question after a successful save",  async () => fixture(async f => {
   const p = await f.ready();
   f.dispatch({ text: "DUMMY-first", reply_to_message: p });
@@ -95,10 +110,10 @@ test("a fresh secret command replaces a question after a successful save",  asyn
   assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "next.txt"), "utf8"), "DUMMY-second");
 }));
 
-test("malformed invalid and existing shortcut filenames never prompt or reach model", async () => fixture(async f => {
+test("malformed invalid and unsafe shortcut filenames never prompt or reach model", async () => fixture(async f => {
   for (const text of ["/secret@",  "/secret: DUMMY", "/secret ../x", "/secret a/b", "/secret a\\b", "/secret CON.txt", "/secret config", "/secret .git", "/secret a b", "/secret " + "x".repeat(65)]) f.dispatch({ text });
   await flush(); assert.equal(f.prompt(), undefined); assert.equal(f.inputs.length, 0);
-  await prepareSecretTarget(f.cwd, "exists.txt"); await writeFile(join(f.cwd, SECRET_DIRECTORY, "exists.txt"), "dummy");
+  await prepareSecretTarget(f.cwd, "exists.txt"); await mkdir(join(f.cwd, SECRET_DIRECTORY, "exists.txt"));
   f.dispatch({ text: "/secret exists.txt" }); await wait(() => !(f.connection as any).secret.active);
   assert.equal(f.prompt(), undefined); assert.equal(f.inputs.length, 0);
   for (const name of ["NUL", "com1.a", "LPT9", "a..b", "a.", "a\n", ".env", "a\0b"]) assert.equal(validSecretName(name), false);
@@ -319,7 +334,7 @@ test("deadline rejects data even before timer callback; whitespace valid and emp
   await wait(() => f.inputs.length === 1); assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), "utf8"), " \n\t");
 }));
 
-test("deletion failure warns without secret or retry; write collision does not delete data", async () => {
+test("deletion failure warns without secret or retry; unsafe target does not delete data", async () => {
   await fixture(async f => {
     const p = await f.ready(); f.hook(async (r: any) => { if (r.method === "deleteMessage") throw new Error("DUMMY-sensitive-error"); });
     f.dispatch({ text: "DUMMY-value", reply_to_message: p }); await wait(() => f.inputs.length === 1); await flush();
@@ -333,6 +348,7 @@ test("deletion failure warns without secret or retry; write collision does not d
   });
   await fixture(async f => {
     const p = await f.ready(); await writeFile(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), "winner");
+    await link(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), join(f.cwd, "alias.txt"));
     f.dispatch({ text: "DUMMY-collision", reply_to_message: p }); await wait(() => !(f.connection as any).secret.active); await flush();
     assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "dummy.txt"), "utf8"), "winner");
     assert.equal(f.inputs.length, 0); assert.equal(f.requests.filter((r: any) => r.method === "deleteMessage").length, 0);
@@ -448,8 +464,8 @@ test("bare menu command requires filename then a distinct content reply; duplica
   f.dispatch({ text: "DUMMY-retired", reply_to_message: filename }); await flush(); assert.equal(f.inputs.length, 1);
 }));
 
-test("filename stage corrects invalid and existing destinations without echo or TTL renewal", async () => fixture(async f => {
-  await prepareSecretTarget(f.cwd, "exists.txt"); await writeFile(join(f.cwd, SECRET_DIRECTORY, "exists.txt"), "winner");
+test("filename stage corrects invalid and unsafe destinations without echo or TTL renewal", async () => fixture(async f => {
+  await prepareSecretTarget(f.cwd, "exists.txt"); await mkdir(join(f.cwd, SECRET_DIRECTORY, "exists.txt"));
   f.dispatch({ text: "/secret" }); await wait(() => (f.connection as any).secret.flow?.phase === "awaiting");
   const p = f.bot(), expires = (f.connection as any).secret.flow.expires;
   for (const text of ["../DUMMY-invalid", "CON", "a b", "", "x".repeat(65)]) f.dispatch({ text, reply_to_message: p });
@@ -461,7 +477,7 @@ test("filename stage corrects invalid and existing destinations without echo or 
   f.dispatch({ text: "corrected.txt", reply_to_message: p });
   await wait(() => (f.connection as any).secret.flow?.stage === "content" && (f.connection as any).secret.flow?.phase === "awaiting");
   f.dispatch({ text: "DUMMY-success", reply_to_message: f.bot() }); await wait(() => f.inputs.length === 1);
-  assert.equal(await readFile(join(f.cwd, SECRET_DIRECTORY, "exists.txt"), "utf8"), "winner");
+  assert.ok((await stat(join(f.cwd, SECRET_DIRECTORY, "exists.txt"))).isDirectory());
 }));
 
 test("filename prompts remain rejection-only after cancellation, deadline and reconnect", async () => {
@@ -501,13 +517,13 @@ test("filename verification and both prompt sends are cancellation fenced; send 
   });
 });
 
-test("filesystem rejects symlinks, tracked tree, altered ignore, open permissions and no-clobber race", async () => {
+test("filesystem rejects symlinks, tracked tree, altered ignore and open permissions; replaces regular files", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "pi-secret-storage-"));
   try {
     execFileSync("git", ["init", "-q"], { cwd });
     let target = await prepareSecretTarget(cwd, "dummy.txt");
     assert.equal(execFileSync("git", ["check-ignore", "--", `${SECRET_DIRECTORY}/dummy.txt`, `${SECRET_DIRECTORY}/.secret-any.tmp`], { cwd, encoding: "utf8" }).trim().split("\n").length, 2);
-    await writeFile(target.path, "winner"); assert.throws(() => commitSecret(target, "DUMMY-loser", () => true)); assert.equal(await readFile(target.path, "utf8"), "winner");
+    await writeFile(target.path, "winner"); commitSecret(target, "DUMMY-replacement", () => true); assert.equal(await readFile(target.path, "utf8"), "DUMMY-replacement");
     await rm(target.path); await symlink(join(cwd, "outside"), target.path); await assert.rejects(prepareSecretTarget(cwd, "dummy.txt")); await rm(target.path);
     execFileSync("git", ["add", "-f", `${SECRET_DIRECTORY}/.gitignore`], { cwd }); await assert.rejects(prepareSecretTarget(cwd, "dummy.txt"));
     execFileSync("git", ["rm", "--cached", "-q", `${SECRET_DIRECTORY}/.gitignore`], { cwd });

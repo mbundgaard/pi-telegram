@@ -24,7 +24,7 @@ test("preflight accepts ordinary, ignored-parent, exclude, nested and canonical 
       const a = await prepareSecretTarget(cwd, "first.txt");
       await writeFile(a.path, "DUMMY", { mode: 0o600 });
       await prepareSecretTarget(cwd, "second.txt");
-      await assert.rejects(prepareSecretTarget(cwd, "first.txt"), (e: unknown) => e instanceof SecretPreflightError && e.code === "exists" && !e.message.includes(root));
+      assert.equal((await prepareSecretTarget(cwd, "first.txt")).path, a.path);
     } finally { await rm(root, { recursive: true, force: true }); }
   }
 });
