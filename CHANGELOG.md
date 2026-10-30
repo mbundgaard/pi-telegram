@@ -2,6 +2,11 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.9 — focused model guidance
+
+- Remove secret/credential behavioral directives and native secret discovery from injected tool guidance and the optional skill; remove the skill's secret reference. Save follow-ups now contain only the saved path and byte count.
+- Native secret commands, authentication, protected storage, replacement and upload safeguards remain unchanged. No dependency changes, host installation or reload; existing live-testing limitations remain.
+
 ## 0.6.8 — tag-driven releases
 
 - Publish automatically from one matching stable version tag, checking out its exact commit and validating package/lockfile versions before clean install, tests, audit and package checks. Manual dispatch and GitHub release publication triggers are removed.

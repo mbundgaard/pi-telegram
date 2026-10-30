@@ -4,6 +4,10 @@
 
 **Documentation for 0.6.0.** This reference explains the explicit tools and optional skill for agents and tool authors; it is not an extra step in beginner setup. Upgrading from 0.5.0 requires the [migration](#migration-from-050) below.
 
+## 0.6.9 guidance update
+
+Version 0.6.9 removes secret/credential behavioral directives and native secret discovery from injected tool guidance and the optional skill, including its secret reference. Native save follow-ups contain only path and byte-count metadata. Native commands, authentication, storage and upload safeguards are unchanged. The messaging API contracts below remain applicable.
+
 ## Optional usage skill
 
 The local package now bundles `skills/pi-telegram/SKILL.md`, declared through `pi.skills`, with focused recipes for conversation/formatting, activity/drafts, buttons, files/photos, and asynchronous progress. Pi discovers the description; full content loads on demand, not automatically for every Telegram turn. When skill commands are enabled, `/skill:pi-telegram` explicitly loads it. Package resource filters can disable it. The extension's tool descriptions and prompt guidelines remain the mandatory contract; the skill adds no tools or permissions.

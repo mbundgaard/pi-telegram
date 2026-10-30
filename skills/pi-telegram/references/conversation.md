@@ -21,7 +21,7 @@ To update a persisted non-button message, save the returned reference and supply
 
 Edit accepts only a reference returned by Post or Draft finalize on the same live connection, not a Telegram message ID, draft reference or another session's reference. Button messages cannot be edited. Only the 1,000 most recent persisted references are retained per connection; older references can expire. Editing does not affect Working or drafts. If no valid reference exists, do not invent one; explain the limit before posting a replacement that could duplicate an uncertain send.
 
-Messages allow 32,768 characters (4,096 with buttons). Summarize or deliberately post separate sections rather than oversize tool arguments. Never expose hidden reasoning, raw logs/tool payloads or secrets. Use safe concise public outcomes; artifacts remain request-bound.
+Messages allow 32,768 characters (4,096 with buttons). Summarize or deliberately post separate sections rather than oversize tool arguments. Never expose hidden reasoning or raw logs/tool payloads. Use safe concise public outcomes; artifacts remain request-bound.
 
 ## Requested advanced formatting
 

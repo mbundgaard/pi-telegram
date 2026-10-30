@@ -27,7 +27,7 @@ test("bundled skill is discoverable and its local reference links resolve inside
   for (const file of files) {
     const text = await readFile(resolve(root, file), "utf8");
     assert.ok(text.length < 6000, `${file} should stay focused`);
-    assert.doesNotMatch(text, /telegram_send\b|api\.telegram\.org/);
+    assert.doesNotMatch(text, /telegram_send\b|api\.telegram\.org|\/secret|credential|reviewed consumer|secret intake/i);
     for (const [, target] of text.matchAll(/\]\(([^)]+\.md)\)/g)) {
       const path = relative(root, resolve(root, dirname(file), target!)).replaceAll("\\", "/");
       assert.ok(files.includes(path), `${file} links to unshipped ${path}`);
@@ -126,6 +126,7 @@ test("npm pack JSON parser accepts array and name-keyed formats and rejects inva
 test("npm pack includes all skill files and no private/development directories", { skip: process.env.npm_execpath ? false : "Run via npm test to inspect npm's actual pack list" }, async () => {
   const stdout = execFileSync(process.execPath, [process.env.npm_execpath!, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8" });
   const files = packFiles(stdout, "@comput/pi-telegram");
+  assert.ok(!files.includes(`${referenceDir}/secrets.md`), "removed credential guidance must not be packaged");
   for (const file of [...await skillFiles(), "src/reload-intent.ts", "src/restart.ts"]) assert.ok(files.includes(file), `missing package file ${file}`);
   const docs = ["docs/user-guide.md", "docs/agent-tools.md", "docs/development-status.md"];
   for (const file of docs) assert.ok(files.includes(file), `missing offline guide ${file}`);

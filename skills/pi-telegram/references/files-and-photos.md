@@ -6,7 +6,7 @@ Choose the tool based on the request:
 
 - Downloadable artifacts and original-quality images: `telegram_send_file`, maximum 50 MB; original bytes are preserved.
 - Requested inline PNG/JPEG preview: `telegram_send_photo`, maximum 10 MB, width + height at most 10,000, aspect ratio at most 20:1. Telegram may resize/compress it.
-- Both accept an optional plain-text caption of at most 1,024 characters. Use a project-relative or valid in-project absolute path. Paths and content must be safe to disclose; credentials and repository internals are blocked, but filename checks are not a content secret scan.
+- Both accept an optional plain-text caption of at most 1,024 characters. Use a project-relative or valid in-project absolute path. Paths and content must be safe to disclose; repository internals are blocked.
 
 After the user has requested a generated report during a Telegram turn, and the file actually exists, tool: `telegram_send_file`
 ```json

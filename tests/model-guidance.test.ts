@@ -46,13 +46,17 @@ test("explicit tools have mandatory independent lifecycle and security guidance;
   assert.ok(tools.has("telegram_send_photo"));
 });
 
-test("native secret discovery is mandatory tool guidance, not a model-facing intake tool", () => {
+test("model guidance does not suggest secret intake or police credential use", () => {
   const tools = registeredTools();
   assert.ok([...tools.keys()].every(name => !name.includes("secret")));
-  for (const name of ["telegram_post", "telegram_draft", "telegram_edit", "telegram_activity"]) {
-    const guidance = tools.get(name).promptGuidelines.join(" ");
-    for (const phrase of [/native \/secret <filename>/, /Bare \/secret/, /non-sensitive filename/, /separate content prompt/, /fixed five-minute deadline/, /reply directly/, /ForceReply/, /never request real secrets to test support/, /metadata-only save confirmation/, /Do not read, preview, echo or upload/, /reviewed consumer/, /not masked or end-to-end encrypted/, /deletion is best effort/, /files are plaintext/, /masked local setup UI, not \/secret/]) assert.match(guidance, phrase);
+  for (const tool of tools.values()) {
+    const guidance = [tool.description, tool.promptSnippet, ...(tool.promptGuidelines ?? [])].join(" ");
+    assert.doesNotMatch(guidance, /\/secret|reviewed consumer|Do not (?:inspect|read, preview)|Never request or pass Telegram tokens|never for credentials/i);
   }
+  for (const name of ["telegram_post", "telegram_draft", "telegram_edit", "telegram_activity"]) {
+    assert.doesNotMatch(tools.get(name).promptGuidelines.join(" "), /secret|credential/i);
+  }
+  assert.doesNotMatch(TELEGRAM_INPUT_NOTICE, /\/secret|credential|reviewed consumer/i);
 });
 
 test("only durable reply tools record reminder evidence synchronously before preflight awaits", async () => {

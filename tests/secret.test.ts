@@ -39,7 +39,7 @@ test("secret success preserves exact UTF8, deletes only original IDs after write
   await wait(() => f.inputs.length === 1);
   assert.deepEqual(f.requests.filter((r: any) => r.method === "deleteMessage").map((r: any) => r.body.message_id), [300, p.message_id]);
   assert.equal(f.inputs[0].forceFollowUp, true); assert.equal(f.inputs[0].forceSteer, undefined);
-  assert.ok(f.inputs[0].text.includes(`${SECRET_DIRECTORY}/dummy.txt`)); assert.ok(f.inputs[0].text.includes(`bytes=${Buffer.byteLength(dummy)}`));
+  assert.equal(f.inputs[0].text, `Native secret saved: project-relative path=${JSON.stringify(`${SECRET_DIRECTORY}/dummy.txt`)}; bytes=${Buffer.byteLength(dummy)}.`);
   assert.ok(!JSON.stringify(f.inputs).includes("DUMMY-only")); assert.ok(!JSON.stringify(f.requests).includes("DUMMY-only"));
   const file = join(f.cwd, SECRET_DIRECTORY, "dummy.txt");
   if (process.platform !== "win32") { assert.equal((await stat(file)).mode & 0o777, 0o600); assert.equal((await stat(join(f.cwd, SECRET_DIRECTORY))).mode & 0o777, 0o700); }
