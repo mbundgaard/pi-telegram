@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.9 candidate — authorized publication pending
+## 0.6.9 released — verified
+
+Public npm `latest` is **0.6.9**, from release commit [`7115f64850290cc400bc5cd210a0adf3fd2655b6`](https://github.com/mbundgaard/pi-telegram/commit/7115f64850290cc400bc5cd210a0adf3fd2655b6) and annotated tag `v0.6.9` (object `a2682704760b09f9f6044e29b4a0a75d5b4259ec`). [Main CI 41110792663](https://github.com/mbundgaard/pi-telegram/actions/runs/41110792663) passed before the single tag push. [Trusted Publishing 41110914793](https://github.com/mbundgaard/pi-telegram/actions/runs/41110914793), attempt **1**, succeeded with event `push`. No manual dispatch, GitHub release trigger, tag rewrite or publication retry.
+
+All **46 published files** byte-match the release commit. SHA-1: `f7373223adb1c107f02ef311eedf545814510b1d`; integrity: `sha512-ILSb4umab+gMvecj6k75bgkpT9gDAruVzrW6XIvO/fWCespc6B5Vvqn9bkIpbKD9oB1ONhKw4/zgfxll0w8jmw==`. Computed SHA-512 matches registry integrity and decoded SLSA subject; payload linkage matches the tag, exact commit, repository, `.github/workflows/publish.yml` and run/attempt. No independent DSSE/certificate-chain/Rekor verification is claimed.
+
+Clean npm ci, typecheck and **290 tests** (none skipped), full/production audits zero vulnerabilities, pack46/diff checks and local tarball byte verification passed. Native secret safeguards and dependencies remain unchanged. No host install/reload, live bot testing, runtime-secret inspection or outward messages. Existing Windows, privacy/deletion, two-session, network and host-cancellation limitations remain. Published docs retain their candidate snapshot; this evidence-only update does not alter the artifact. Do not republish or rewrite v0.6.9.
+
+## Historical 0.6.9 candidate — authorized publication pending
 
 Owner authorized all pending project changes, patch release, commit/push and tag publication without further permission questions. npm 0.6.9 and remote v0.6.9 were absent. Independent review covered every pending source/skill/test diff: only model-facing secret/credential directives and discovery are removed; metadata save follow-ups retain only path and byte count. Native command/authentication/storage/replacement/upload safeguards are unchanged. Dependencies are unchanged; private runtime directories are excluded and were not inspected.
 

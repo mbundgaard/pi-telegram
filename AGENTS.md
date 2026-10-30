@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## Current 0.6.9 candidate — authorized publication pending
+## Current 0.6.9 release — verified
+
+- Public npm latest **0.6.9**, release commit `7115f64850290cc400bc5cd210a0adf3fd2655b6`, annotated tag `v0.6.9` (object `a2682704760b09f9f6044e29b4a0a75d5b4259ec`). CI **41110792663** and tag-push Trusted Publishing **41110914793**, attempt **1**, succeeded. One tag push; no manual dispatch, release trigger or retry.
+- All **46 published files** byte-match the release commit. SHA-1 `f7373223adb1c107f02ef311eedf545814510b1d`; integrity `sha512-ILSb4umab+gMvecj6k75bgkpT9gDAruVzrW6XIvO/fWCespc6B5Vvqn9bkIpbKD9oB1ONhKw4/zgfxll0w8jmw==`. Computed SHA-512 matches decoded SLSA subject; tag/repository/commit/workflow/run linkage verified, not independent DSSE/certificate-chain/Rekor verification.
+- Clean ci/typecheck/**290 tests** (none skipped), full/production audits zero vulnerabilities, pack46/diff/local byte checks passed. Native secret safeguards and dependencies unchanged. No host install/reload, live bots, runtime-secret inspection or external messages; existing live-testing limitations remain. Do not republish/rewrite v0.6.9; published docs retain the candidate snapshot.
+
+## Historical 0.6.9 candidate — authorized publication pending
 
 - Owner authorized all pending project changes, commit/push and patch release without further permission questions. Registry 0.6.9 and remote tag were absent; publication follows `docs/releasing.md` after main CI.
 - Independently reviewed removal of model-facing secret/credential directives/discovery from injected tool guidance and optional skill, deletion of the skill secret reference, and metadata-only path/byte-count save follow-ups. Native commands/authentication/storage/replacement/upload safeguards and dependencies remain unchanged. Historical guidance checkpoints below describe prior releases, not current injected guidance.
