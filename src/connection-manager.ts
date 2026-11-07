@@ -246,10 +246,9 @@ export class ConnectionManager {
       // not delivery of an unsolicited success notice. Startup stays silent.
       check();
       this.ready = true;
-      ctx.ui.setStatus(
-        "pi-telegram",
-        ctx.ui.theme.fg("success", `telegram: @${bot.username}`),
-      );
+      // The username is appended to Pi's session name by the connected callback.
+      // Keep the standard footer; no separate extension-status line is needed.
+      ctx.ui.setStatus("pi-telegram", undefined);
       // Each menu API call is bounded and aborts with the connection. Do not
       // bind this optional work to the now-completed startup attempt deadline.
       void current.configureCommandMenu().catch(() => {

@@ -116,6 +116,10 @@ export class TelegramSessionConnection {
     });
   }
   get completion(): Promise<void> | undefined { return this.polling; }
+  /** Native interaction guard for startup settings changes, not Stop authority. */
+  get hasNativeInteraction(): boolean {
+    return this.stopping || this.secret.active || this.feedback.active || !!this.incoming || !!this.question || !!this.updateOffer;
+  }
   private reportDraftError(): void {
     if (this.stopping || Date.now() - this.lastDraftErrorAt < 30_000) return;
     this.lastDraftErrorAt = Date.now();

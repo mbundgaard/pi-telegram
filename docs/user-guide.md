@@ -4,6 +4,14 @@
 
 This guide describes **0.6.7**. Publication evidence is recorded in [development status](development-status.md); installation and loaded-runtime support are separate. The separate [agent-tools guide](agent-tools.md) explains the explicit messaging API and migration from 0.5.0.
 
+## Unreleased: native queue defaults (source review pending)
+
+After an assigned Telegram session becomes ready in the interactive Pi CLI, idle source builds set Pi's `steeringMode` and `followUpMode` defaults to `"all"`. The global file is `<agent-dir>/settings.json` (Pi's `PI_CODING_AGENT_DIR` override is respected); existing overrides in `<project>/.pi/settings.json` are also set to `"all"`. Other setting values are preserved. These are Pi settings, not Telegram's credential/settings files, and this adds no message queue or debounce.
+
+**Activation is manual:** when settings change, the connected bot sends a Telegram message asking you to send `/reload` when idle. Configuration failures also produce a bounded Telegram notice. Already-correct files are not rewritten and do not trigger a notice. No automatic reload or Pi core modification is used.
+
+Unassigned sessions, non-interactive modes and busy/native-interaction/update states do not initiate configuration. A skipped attempt is not scheduled for later; a future ready connection can check again. Global defaults also affect other sessions/projects on their next settings load, and project overrides affect other sessions in that project. Already-running sessions are not reconfigured. Custom SDK settings managers/agent directories are not supported; the CLI marker is a convention, not SDK identity attestation. Malformed or locked settings produce a generic local warning, not destructive replacement. Source review is required before activation.
+
 ## Native secret files (0.6.3)
 
 Source review and dummy-data tests passed; live intake/deletion remains unverified. Confirm that a supporting runtime is loaded before sending any value; documentation does not activate it.
@@ -39,6 +47,10 @@ If the bot already has a webhook, Pi asks before removing it for local polling. 
 Open the new bot's private Telegram chat, press **Start**, then send the exact one-time pairing code displayed by Pi. The pairing window expires after three minutes; Escape in local Pi cancels it. Pairing instructions wrap on narrow terminals while retaining every character. If a display still clips the code, widen the terminal or cancel and retry—do not guess the code.
 
 A regular BotFather bot can be restored after reinstall by adding its username/token again. Re-adding an already paired project bot preserves its stored owner. Changing owners requires explicitly removing the local entry and pairing again; do not edit the owner field manually.
+
+### Telegram label in Pi's standard footer (0.6.10)
+
+When connected in the terminal, Pi Telegram appends ` • @username` to the existing session name (or uses `@username` when unnamed). Pi's standard footer displays it on the folder/branch/session-name line; no custom footer is installed and no separate Telegram status line is used. Reconnecting with the same label does not append duplicates. The name is persisted and remains after disconnect. Another extension or `/name` can replace it; Pi Telegram does not continuously rewrite the name or coordinate naming with other extensions.
 
 ### Explicit reload acknowledgement (since 0.6.2)
 

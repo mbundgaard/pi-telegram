@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, realpath, writeFile, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, realpath, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -81,7 +81,10 @@ function harness(cwd: string, sessionId = "main") {
       },
     },
   } as unknown as ExtensionContext;
+  let sessionName: string | undefined;
   const api = {
+    getSessionName: () => sessionName,
+    setSessionName: (name: string) => { sessionName = name; },
     on: (name: string, handler: Handler) =>
       events.set(name, [...(events.get(name) ?? []), handler]),
     registerCommand: (name: string, options: { handler: Handler }) =>
@@ -98,6 +101,8 @@ function harness(cwd: string, sessionId = "main") {
   };
   return {
     ctx,
+    getSessionName: () => sessionName,
+    setSessionName: (name: string) => { sessionName = name; },
     sent,
     deliveries,
     notices,
@@ -130,6 +135,11 @@ async function fixture(
 ) {
   const cwd = await mkdtemp(join(tmpdir(), "pi-telegram-lifecycle-"));
   const previousEnv = process.env.PI_TELEGRAM_SETTINGS;
+  const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+  process.env.PI_CODING_AGENT_DIR = join(cwd, "agent");
+  // Ordinary lifecycle fixtures start configured; the queue-default test removes this file.
+  await mkdir(join(cwd, "agent"));
+  await writeFile(join(cwd, "agent", "settings.json"), JSON.stringify({ steeringMode: "all", followUpMode: "all" }));
   const previousFetch = globalThis.fetch;
   process.env.PI_TELEGRAM_SETTINGS = join(cwd, "global", "settings.json");
   const network: {
@@ -183,6 +193,8 @@ async function fixture(
     await work(cwd, network);
   } finally {
     globalThis.fetch = previousFetch;
+    if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+    else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
     if (previousEnv === undefined) delete process.env.PI_TELEGRAM_SETTINGS;
     else process.env.PI_TELEGRAM_SETTINGS = previousEnv;
     await rm(cwd, { recursive: true, force: true });
@@ -804,14 +816,17 @@ test("startup recovers from a transient failure and reconnects across repeated r
       network.failToken = "test-111";
       await pi.emit("session_start");
       network.failToken = undefined;
-      for (let i = 0; i < 200 && !pi.statuses.includes("telegram: @Example111Bot"); i++)
+      for (let i = 0; i < 200 && pi.getSessionName() !== "@Example111Bot"; i++)
         await new Promise(resolve => setTimeout(resolve, 20));
-      assert.ok(pi.statuses.includes("telegram: @Example111Bot"));
+      assert.equal(pi.getSessionName(), "@Example111Bot");
+      assert.ok(!pi.statuses.includes("telegram: @Example111Bot"));
+      pi.setSessionName("Coordinator • @Example111Bot");
       assert.deepEqual(network.messages, []);
       for (let i = 0; i < 3; i++) {
         await pi.emit("session_shutdown");
         await pi.emit("session_start");
-        assert.equal(pi.statuses.at(-1), "telegram: @Example111Bot");
+        assert.equal(pi.getSessionName(), "Coordinator • @Example111Bot");
+        assert.equal(pi.statuses.at(-1), undefined);
         assert.deepEqual(network.messages, []);
         assert.equal((await loadProjectSettings(cwd))?.bots[0]?.sessionId, "main");
       }
@@ -1256,4 +1271,37 @@ test("native reload failure in the original runtime never acknowledges or author
       await pi.emit("session_start", { reason: "reload" });
       assert.equal(network.messages.some(m => m.startsWith("Telegram reloaded")), false);
     } finally { await pi.emit("session_shutdown", { reason: "quit" }); }
+  }));
+
+
+test("queue startup configuration notifies Telegram once and never injects reload", async () =>
+  fixture(async (cwd, network) => {
+    const previous = process.env.PI_CODING_AGENT;
+    process.env.PI_CODING_AGENT = "true";
+    const global = join(cwd, "agent", "settings.json");
+    await rm(global);
+    const pi = harness(cwd);
+    try {
+      await pi.emit("session_start");
+      await assert.rejects(readFile(global), /ENOENT/, "unassigned startup must not change settings");
+      await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+      pi.setIdle(false);
+      await pi.emit("session_start");
+      await assert.rejects(readFile(global), /ENOENT/, "busy startup must not change settings");
+      pi.setIdle(true);
+      await pi.emit("session_start");
+      assert.deepEqual(JSON.parse(await readFile(global, "utf8")), { steeringMode: "all", followUpMode: "all" });
+      const notice = "Pi Telegram set steeringMode and followUpMode to all. Send /reload when idle to apply these settings.";
+      for (let i = 0; i < 100 && !network.messages.includes(notice); i++)
+        await new Promise(resolve => setTimeout(resolve, 10));
+      assert.equal(network.messages.filter(text => text === notice).length, 1);
+      assert.ok(!pi.notices.includes(notice), "notice goes to Telegram, not only the terminal");
+      assert.deepEqual(pi.sent, [], "no synthetic native reload or model message");
+      await pi.emit("session_start", { reason: "reload" });
+      assert.equal(network.messages.filter(text => text === notice).length, 1);
+      assert.deepEqual(pi.sent, []);
+    } finally {
+      await pi.emit("session_shutdown");
+      if (previous === undefined) delete process.env.PI_CODING_AGENT; else process.env.PI_CODING_AGENT = previous;
+    }
   }));

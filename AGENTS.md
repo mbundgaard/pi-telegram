@@ -11,6 +11,19 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## 0.6.10 candidate — authorized release pending
+
+- Owner authorized all pending source changes, commit/push and a new npm release, monitored through verification. Version/tag 0.6.10 were absent at preparation. No workers used.
+- Scope: native queue defaults with a Telegram manual-reload notice, plus username appended to the existing session name using `setSessionName`; no custom footer, automatic reload or Pi core modification. Owner observed the footer change; notification tests use dummy fixtures. The persisted username remains after disconnect; other name writers can overwrite it.
+- Scoped development SDK override adds minimatch11.0.3; SDK1.3.0 and undici8.12.2 remain. Reviewed upstream v10.2.6–v11.0.3 changes and matcher API used by SDK package/model matching; v11 changes the matcher engine. npm11 regenerated the stale nested override resolution; clean npm10 ci verifies the resulting lock. Production dependencies unchanged; this is not consumer-host remediation.
+- Clean ci/typecheck/**306 tests** (none skipped), full/production audits zero, pack48 and diff checks pass. No host install/reload, real settings mutation, live bot tests, credential inspection or private runtime staging. Publication evidence follows verification.
+
+## Historical unreleased queue defaults — Telegram notice and manual reload
+
+- Ready assigned idle interactive CLI sessions now persist global native steering/follow-up `all` defaults and existing project overrides, resolving Pi's agent directory and preserving unrelated JSON values under host-compatible settings locks. Unassigned/busy/native-interaction/update states skip; no new message queue or deferred task. See `src/queue-settings.ts` and `docs/development-status.md` for exact scope, global effects and filesystem/SDK limitations.
+- **Owner selected manual reload:** changed settings send a native Telegram notice asking the owner to send `/reload` when idle; already-correct files stay untouched/silent. No automatic reload, Pi core modification, fake native command or private context cast. The prior automatic-reload proposal is withdrawn.
+- Typecheck and **304 tests** pass (none skipped); focused suite64 passes; production audit zero. Full audit now fails with **2 moderate development SDK/minimatch findings**, `GHSA-g3hv-75wg-m249`; no dependency change. Pack47/diff pass. Dummy fixtures only; no actual host settings access/change, installation/reload, live bots, outward messages, version bump, commit/push/publication. Main must review before activation.
+
 ## Current 0.6.9 release — verified
 
 - Public npm latest **0.6.9**, release commit `7115f64850290cc400bc5cd210a0adf3fd2655b6`, annotated tag `v0.6.9` (object `a2682704760b09f9f6044e29b4a0a75d5b4259ec`). CI **41110792663** and tag-push Trusted Publishing **41110914793**, attempt **1**, succeeded. One tag push; no manual dispatch, release trigger or retry.

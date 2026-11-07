@@ -11,6 +11,8 @@ import { INCOMING_FILE_LIMIT } from "../src/incoming-files.ts";
 test("registered group reception saves successful files once and emits one authenticated follow-up with partial failure", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "pi-group-lifecycle-"));
   const previous = globalThis.fetch, settings = process.env.PI_TELEGRAM_SETTINGS;
+  const agentDir = process.env.PI_CODING_AGENT_DIR;
+  process.env.PI_CODING_AGENT_DIR = join(cwd, "agent");
   process.env.PI_TELEGRAM_SETTINGS = join(cwd, "global", "settings.json");
   const handlers = new Map<string, Array<(event: any, ctx: any) => any>>();
   const tools = new Map<string, any>(); const sent: string[] = [], deliveries: unknown[] = [], downloads: string[] = [];
@@ -19,6 +21,7 @@ test("registered group reception saves successful files once and emits one authe
     ui: { notify() {}, setStatus() {}, theme: { fg: (_c: string, t: string) => t } },
   } as unknown as ExtensionContext;
   extension({
+    getSessionName: () => undefined, setSessionName() {},
     on: (name: string, fn: any) => handlers.set(name, [...(handlers.get(name) ?? []), fn]),
     registerCommand() {}, registerTool: (tool: any) => tools.set(tool.name, tool),
     sendUserMessage: (content: string, options: unknown) => { sent.push(content); deliveries.push(options); },
@@ -63,6 +66,7 @@ test("registered group reception saves successful files once and emits one authe
     await assert.rejects(sendFile(), error => error instanceof Error && !/current Telegram-originated request/.test(error.message));
   } finally {
     await emit("session_shutdown"); globalThis.fetch = previous;
+    if (agentDir === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = agentDir;
     if (settings === undefined) delete process.env.PI_TELEGRAM_SETTINGS; else process.env.PI_TELEGRAM_SETTINGS = settings;
     await rm(cwd, { recursive: true, force: true });
   }

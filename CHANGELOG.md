@@ -2,6 +2,13 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.10 — queue defaults and compact Telegram label
+
+- On ready, assigned, idle interactive CLI connections, set Pi's global `steeringMode` and `followUpMode` to `all` and update existing project overrides, preserving unrelated settings. When changed, send a Telegram notice asking the owner to send `/reload` when idle. Already-correct settings stay untouched and silent. No automatic reload, new message queue or Pi core changes.
+- Append ` • @username` to the existing Pi session name, without duplicating that label on reload. Remove the separate `telegram:` status line; keep Pi's standard footer and token statistics. This is a persisted session name, not a custom footer. Other extensions that replace the name can overwrite the label; disconnection does not remove it.
+- Resolve development audit findings with a scoped SDK override to `minimatch@11.0.3`. SDK remains 1.3.0; production dependencies and the existing undici override are unchanged. This development override does not patch consumers' Pi installations.
+- Typecheck and 306 tests pass. The owner observed the footer change; Telegram settings-change notices have mocked integration coverage, not a live delivery test. Publication does not install or reload sessions.
+
 ## 0.6.9 — focused model guidance
 
 - Remove secret/credential behavioral directives and native secret discovery from injected tool guidance and the optional skill; remove the skill's secret reference. Save follow-ups now contain only the saved path and byte count.

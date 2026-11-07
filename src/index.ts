@@ -9,6 +9,7 @@ import {
   saveGlobalSettings,
 } from "./config.ts";
 import { ConnectionManager } from "./connection-manager.ts";
+import { withTelegramUsername } from "./session-label.ts";
 import { registerResponseRouting } from "./request-routing.ts";
 import { validateEmbeddedContent } from "./rich-content.ts";
 import { SetupFlows, type SetupOutcome } from "./setup-flow.ts";
@@ -25,6 +26,7 @@ import { realpath } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { reloadIntents } from "./reload-intent.ts";
 import { registerCompactionNotices } from "./compaction-notices.ts";
+import { configureQueueSettings } from "./queue-settings.ts";
 
 const RELEASE_NOTES_URL = "https://github.com/mbundgaard/pi-telegram/blob/main/CHANGELOG.md";
 
@@ -115,6 +117,24 @@ export default function piTelegram(pi: ExtensionAPI): void {
     version: running.version,
     feedbackEndpoint: FEEDBACK_ENDPOINT,
     connected: (current, ctx) => {
+      const username = connections.bot?.username;
+      if (username && ctx.mode === "tui") {
+        const previous = pi.getSessionName();
+        const name = withTelegramUsername(previous, username);
+        if (name !== previous) pi.setSessionName(name);
+      }
+      // Restrict filesystem defaults to ready, assigned interactive CLI sessions.
+      // SDK hosts may use an agentDir/settingsManager not exposed by ExtensionAPI.
+      if (ctx.mode === "tui" && process.env.PI_CODING_AGENT === "true") {
+        configureQueueSettings({
+          cwd: ctx.cwd,
+          current: () => !lifetime.signal.aborted && activeContext === ctx && connections.isReady &&
+            connections.connection === current && connections.bot?.sessionId === ctx.sessionManager.getSessionId() &&
+            ctx.isIdle() && !ctx.hasPendingMessages?.() && !responses.origins.hasPending &&
+            !current.hasNativeInteraction && !installing && !approvedUpdate && !pendingReload && !armedReload,
+          notify: message => current.sendControlNotice(message),
+        });
+      }
       const claim = claimedReload;
       claimedReload = undefined;
       if (claim) current.sendGuardedControlNotice(`Telegram reloaded · v${running.version}`, async () => {
