@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.10 candidate — authorized release pending
+## Current 0.6.10 release — verified
+
+- npm latest **0.6.10**, release commit `2b96e7d449dea69bb7bf8d8792dd47021a594404`, annotated tag `v0.6.10`. Main CI **42378827665** and tag publishing **42378892416** succeeded; tag pushed once, no dispatch/retry. Registry propagation confirmed by read-only polling.
+- All **48 published files** byte-match the release commit. SHA-1 `25f8ad703730e7a45538c5df3c59741f198ad14f`; integrity `sha512-3+R2APm5yQAQ8dR55/+t0rCt5g8byB+iousk6V55UtYkLaRTA75ONraasc4ZdvJbUVdiuMTJ6gEvAVn2XDWCqg==`. Decoded SLSA digest and tag/repository/commit/workflow/run linkage verified, not independent cryptographic-chain validation.
+- Clean ci/typecheck/**306 tests**/full and production audits zero/pack48/diff checks passed. Scope and limitations below remain. No workers, host installation/reload, Pi core changes or live notification test. Do not republish or rewrite v0.6.10; published docs retain their candidate snapshot.
+
+## Historical 0.6.10 candidate — authorized release pending
 
 - Owner authorized all pending source changes, commit/push and a new npm release, monitored through verification. Version/tag 0.6.10 were absent at preparation. No workers used.
 - Scope: native queue defaults with a Telegram manual-reload notice, plus username appended to the existing session name using `setSessionName`; no custom footer, automatic reload or Pi core modification. Owner observed the footer change; notification tests use dummy fixtures. The persisted username remains after disconnect; other name writers can overwrite it.

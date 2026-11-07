@@ -2,7 +2,15 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.10 candidate — authorized publication pending
+## 0.6.10 released — verified
+
+Public npm latest is **0.6.10**, released from `2b96e7d449dea69bb7bf8d8792dd47021a594404` through one annotated `v0.6.10` tag push. [CI 42378827665](https://github.com/mbundgaard/pi-telegram/actions/runs/42378827665) and [Trusted Publishing 42378892416](https://github.com/mbundgaard/pi-telegram/actions/runs/42378892416) succeeded. Initial registry visibility lag resolved with read-only polling; no publication retry or manual dispatch.
+
+All **48 published files** byte-match the release commit. Registry SHA-1 `25f8ad703730e7a45538c5df3c59741f198ad14f` and integrity `sha512-3+R2APm5yQAQ8dR55/+t0rCt5g8byB+iousk6V55UtYkLaRTA75ONraasc4ZdvJbUVdiuMTJ6gEvAVn2XDWCqg==` match downloaded bytes. Decoded SLSA subject SHA-512 and tag/repository/commit/workflow/run linkage match; no independent DSSE/certificate-chain/Rekor verification.
+
+Clean ci/typecheck/**306 tests** (none skipped), full/production audits zero, pack48 and diff checks passed. No workers used, no host install/reload, real settings mutation, Pi core modification or live notification test. Publication is not activation. Remaining label/CLI/notification/platform limitations below apply. Published documentation retains its candidate snapshot; this evidence update does not alter the immutable artifact.
+
+## Historical 0.6.10 candidate — authorized publication pending
 
 Scope: queue defaults and Telegram notification requesting a manual reload; session-name username label in the standard Pi footer. No custom footer, automatic reload, core patch, or peer-extension coupling. Existing project overrides become `all` alongside global defaults. Other sessions see global changes on their next settings load. The label persists after disconnect and can be replaced by other name writers. Owner-observed footer behavior is scoped evidence, not a universal integration test.
 
