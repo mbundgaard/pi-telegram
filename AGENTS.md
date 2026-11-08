@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## Unreleased secret Git-check removal
+## Current 0.6.11 release — verified
+
+- npm latest **0.6.11**, release commit `b6328c09f26814fe7cb4d9cc706a9faa547cde51`, annotated tag `v0.6.11`. CI **42499084315** and tag publication **42499155063** succeeded. One tag push; propagation resolved read-only, no publication retry.
+- All **48 published files** byte-match the release commit. SHA-1 `52d33526d11e9b31e97e21b55cd7ad186c473355`; integrity `sha512-xprZhNa6CAcX4xvGXBqjKFdvYXSA6AW8BkwdNpO4oQPK0UkrwAGreqHPmbSOXko/l5uOBAqYP7kWUJD9iTC/Ww==`. Registry hashes and decoded SLSA digest/tag/commit/workflow/run linkage verified, not independent cryptographic-chain validation.
+- Clean ci/typecheck/**307 tests**/full and production audits zero/pack48/diff passed. No dependency changes, workers, host installation/reload or real secret testing. Do not republish or rewrite v0.6.11.
+
+## Historical unreleased secret Git-check removal
 
 - Owner explicitly requested removal of Git checks from secret saving. `src/secret-files.ts` no longer invokes Git or refuses tracked/unignored destinations. The local `*` ignore file remains; it does not untrack existing files. Authentication, exact replies, atomic replacement, filesystem checks and outbound protections remain unchanged.
 - Typecheck and 307 tests pass, none skipped; diff check passes. Added dummy regression saving/replacing with no Git on PATH and an invalid repository. No real secrets inspected, host reload, commit or publication performed for this change.

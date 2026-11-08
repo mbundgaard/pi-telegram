@@ -2,7 +2,13 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.11 candidate — authorized publication pending
+## 0.6.11 released — verified
+
+Public npm latest **0.6.11** is verified, from `b6328c09f26814fe7cb4d9cc706a9faa547cde51` and annotated tag `v0.6.11`. CI **42499084315** and Trusted Publishing **42499155063** succeeded. Tag pushed once; registry propagation resolved by read-only polling, no publication retry.
+
+All **48 published files** byte-match the release commit. SHA-1 `52d33526d11e9b31e97e21b55cd7ad186c473355`; integrity `sha512-xprZhNa6CAcX4xvGXBqjKFdvYXSA6AW8BkwdNpO4oQPK0UkrwAGreqHPmbSOXko/l5uOBAqYP7kWUJD9iTC/Ww==`. Registry hashes and decoded SLSA digest/tag/commit/repository/workflow/run linkage verified; no independent cryptographic attestation-chain verification. Clean ci/typecheck/307 tests/full and production audits zero/pack48/diff passed. No host install/reload, real secret testing or workers. Published docs retain the candidate snapshot.
+
+## Historical 0.6.11 candidate — authorized publication pending
 
 Owner authorized removal of secret-storage Git checks and publication. Secret preparation no longer executes Git or rejects tracked/unignored paths. Local ignore-file creation, native authentication, filesystem validation, atomic replacement and upload protections remain. Saving/replacement with no Git on PATH and broken repository metadata passes dummy-data tests. No dependency changes.
 
