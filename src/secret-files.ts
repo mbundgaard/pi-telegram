@@ -1,5 +1,3 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import { constants, lstatSync, realpathSync, openSync, closeSync, writeFileSync, fsyncSync, renameSync, unlinkSync, fstatSync } from "node:fs";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
@@ -7,7 +5,6 @@ import { join } from "node:path";
 
 export const SECRET_DIRECTORY = ".pi/telegram-secrets";
 export const SECRET_LIMIT = 16_384;
-const exec = promisify(execFile);
 const ignoreText = "*\n";
 export function validSecretName(name: string): boolean {
   return /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/.test(name) && !name.endsWith(".") && !name.includes("..") &&
@@ -18,9 +15,6 @@ const preflightMessages = {
   storage: "Secret storage path is unavailable or unsafe. Request local directory/symlink/access repair; changing the filename will not repair storage.",
   permissions: "Secret storage directory permissions are not private. Request local permission repair; no permissions were changed automatically.",
   ignore: "Secret storage ignore file is unsafe or has unexpected contents. Request local ignore-file repair.",
-  git: "Secret storage Git safety verification could not complete. Request local Git availability/access repair.",
-  tracked: "Secret storage contains Git-tracked entries. Request local tracking repair before retrying.",
-  unignored: "Secret destination or temporary files are not Git-ignored. Request local ignore-rule repair.",
 } as const;
 export type SecretPreflightCode = keyof typeof preflightMessages;
 /** Fixed allowlisted metadata only; never retains native errors, paths or Git output. */
@@ -57,23 +51,6 @@ export async function prepareSecretTarget(cwd: string, name: string, expectedRoo
       const existing = await lstat(path);
       if (!existing.isFile() || existing.isSymbolicLink() || existing.nlink !== 1) throw new Error();
     } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
-    stage = "git";
-    const options = { cwd: root, windowsHide: true, timeout: 5000 };
-    let git = true;
-    try { await exec("git", ["rev-parse", "--show-toplevel"], options); } catch (e) {
-      if (/not a git repository/i.test(String((e as { stderr?: string }).stderr))) git = false; else throw e;
-    }
-    if (git) {
-      const tracked = await exec("git", ["ls-files", "--", SECRET_DIRECTORY], options);
-      if (tracked.stdout.trim()) throw new SecretPreflightError("tracked");
-      for (const candidate of [path, join(dir, ".secret-probe.tmp")]) {
-        try { await exec("git", ["check-ignore", "-q", "--", candidate], options); }
-        catch (e) {
-          if ((e as { code?: unknown }).code === 1) throw new SecretPreflightError("unignored");
-          throw e;
-        }
-      }
-    }
     return { root, directory: dir, name, path };
   } catch (e) { throw e instanceof SecretPreflightError ? e : new SecretPreflightError(stage); }
 }

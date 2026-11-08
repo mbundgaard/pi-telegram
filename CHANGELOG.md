@@ -2,6 +2,12 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.11 — secret saving without Git
+
+- Remove all Git command execution and tracking/ignore verification from secret preparation and saving. Git availability, repository errors, and tracked files no longer block intake.
+- Retain the local `*` ignore file, native authentication, filesystem checks, atomic replacement and outbound protections. An ignore file does not untrack existing files.
+- Add regression coverage for saving and replacing dummy contents with Git unavailable and invalid repository metadata. No dependency changes or automatic installation/reload.
+
 ## 0.6.10 — queue defaults and compact Telegram label
 
 - On ready, assigned, idle interactive CLI connections, set Pi's global `steeringMode` and `followUpMode` to `all` and update existing project overrides, preserving unrelated settings. When changed, send a Telegram notice asking the owner to send `/reload` when idle. Already-correct settings stay untouched and silent. No automatic reload, new message queue or Pi core changes.

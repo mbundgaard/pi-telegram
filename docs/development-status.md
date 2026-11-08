@@ -2,6 +2,12 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
+## 0.6.11 candidate — authorized publication pending
+
+Owner authorized removal of secret-storage Git checks and publication. Secret preparation no longer executes Git or rejects tracked/unignored paths. Local ignore-file creation, native authentication, filesystem validation, atomic replacement and upload protections remain. Saving/replacement with no Git on PATH and broken repository metadata passes dummy-data tests. No dependency changes.
+
+Clean ci, typecheck, **307 tests** (none skipped), full/production audits zero, pack48 and diff checks passed. Version/tag 0.6.11 were absent at preparation. No host install/reload, real secret inspection, live secret submission or workers used. Publication follows the tag-driven workflow and independent registry/artifact verification.
+
 ## 0.6.10 released — verified
 
 Public npm latest is **0.6.10**, released from `2b96e7d449dea69bb7bf8d8792dd47021a594404` through one annotated `v0.6.10` tag push. [CI 42378827665](https://github.com/mbundgaard/pi-telegram/actions/runs/42378827665) and [Trusted Publishing 42378892416](https://github.com/mbundgaard/pi-telegram/actions/runs/42378892416) succeeded. Initial registry visibility lag resolved with read-only polling; no publication retry or manual dispatch.

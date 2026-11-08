@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, mkdir, rm, writeFile, chmod, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile, chmod, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { prepareSecretTarget, SecretPreflightError } from "../src/secret-files.ts";
+import { prepareSecretTarget, commitSecret, SecretPreflightError } from "../src/secret-files.ts";
 import { SecretFlow } from "../src/secret.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, stdio: "pipe" });
@@ -30,7 +30,7 @@ test("preflight accepts ordinary, ignored-parent, exclude, nested and canonical 
 });
 
 test("deterministic storage failures expose only typed categories, preserving safety gates", async () => {
-  for (const mode of ["permissions", "ignore", "tracked", "storage"] as const) {
+  for (const mode of ["permissions", "ignore", "storage"] as const) {
     const cwd = await mkdtemp(join(tmpdir(), "secret-preflight-"));
     try {
       git(cwd, "init", "-q");
@@ -40,10 +40,25 @@ test("deterministic storage failures expose only typed categories, preserving sa
         await chmod(t.directory, 0o755);
       }
       if (mode === "ignore") await writeFile(join(t.directory, ".gitignore"), "DUMMY-unexpected-not-for-output");
-      if (mode === "tracked") git(cwd, "add", "-f", ".pi/telegram-secrets/.gitignore");
       if (mode === "storage") { await rm(t.directory, { recursive: true }); await symlink(cwd, t.directory); }
       await assert.rejects(prepareSecretTarget(cwd, "dummy.txt"), (e: unknown) => e instanceof SecretPreflightError && e.code === mode && !e.message.includes(cwd) && !e.message.includes("DUMMY"));
     } finally { await rm(cwd, { recursive: true, force: true }); }
+  }
+});
+
+test("secret preparation and replacement work without Git on PATH or a valid repository", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "secret-no-git-"));
+  const previous = process.env.PATH;
+  try {
+    await writeFile(join(cwd, ".git"), "gitdir: nonexistent-dummy-location\n");
+    process.env.PATH = cwd;
+    const target = await prepareSecretTarget(cwd, "dummy.txt");
+    commitSecret(target, "DUMMY first", () => true);
+    commitSecret(await prepareSecretTarget(cwd, "dummy.txt"), "DUMMY replacement", () => true);
+    assert.equal(await readFile(target.path, "utf8"), "DUMMY replacement");
+  } finally {
+    if (previous === undefined) delete process.env.PATH; else process.env.PATH = previous;
+    await rm(cwd, { recursive: true, force: true });
   }
 });
 

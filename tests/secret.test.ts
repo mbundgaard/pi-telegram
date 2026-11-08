@@ -517,7 +517,7 @@ test("filename verification and both prompt sends are cancellation fenced; send 
   });
 });
 
-test("filesystem rejects symlinks, tracked tree, altered ignore and open permissions; replaces regular files", async () => {
+test("filesystem rejects symlinks, altered ignore and open permissions; permits tracked tree and replaces regular files", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "pi-secret-storage-"));
   try {
     execFileSync("git", ["init", "-q"], { cwd });
@@ -525,7 +525,7 @@ test("filesystem rejects symlinks, tracked tree, altered ignore and open permiss
     assert.equal(execFileSync("git", ["check-ignore", "--", `${SECRET_DIRECTORY}/dummy.txt`, `${SECRET_DIRECTORY}/.secret-any.tmp`], { cwd, encoding: "utf8" }).trim().split("\n").length, 2);
     await writeFile(target.path, "winner"); commitSecret(target, "DUMMY-replacement", () => true); assert.equal(await readFile(target.path, "utf8"), "DUMMY-replacement");
     await rm(target.path); await symlink(join(cwd, "outside"), target.path); await assert.rejects(prepareSecretTarget(cwd, "dummy.txt")); await rm(target.path);
-    execFileSync("git", ["add", "-f", `${SECRET_DIRECTORY}/.gitignore`], { cwd }); await assert.rejects(prepareSecretTarget(cwd, "dummy.txt"));
+    execFileSync("git", ["add", "-f", `${SECRET_DIRECTORY}/.gitignore`], { cwd }); await prepareSecretTarget(cwd, "dummy.txt");
     execFileSync("git", ["rm", "--cached", "-q", `${SECRET_DIRECTORY}/.gitignore`], { cwd });
     await writeFile(join(target.directory, ".gitignore"), "bad\n"); await assert.rejects(prepareSecretTarget(cwd, "dummy.txt"));
     await writeFile(join(target.directory, ".gitignore"), "*\n");

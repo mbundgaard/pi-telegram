@@ -11,6 +11,11 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## Unreleased secret Git-check removal
+
+- Owner explicitly requested removal of Git checks from secret saving. `src/secret-files.ts` no longer invokes Git or refuses tracked/unignored destinations. The local `*` ignore file remains; it does not untrack existing files. Authentication, exact replies, atomic replacement, filesystem checks and outbound protections remain unchanged.
+- Typecheck and 307 tests pass, none skipped; diff check passes. Added dummy regression saving/replacing with no Git on PATH and an invalid repository. No real secrets inspected, host reload, commit or publication performed for this change.
+
 ## Current 0.6.10 release — verified
 
 - npm latest **0.6.10**, release commit `2b96e7d449dea69bb7bf8d8792dd47021a594404`, annotated tag `v0.6.10`. Main CI **42378827665** and tag publishing **42378892416** succeeded; tag pushed once, no dispatch/retry. Registry propagation confirmed by read-only polling.
