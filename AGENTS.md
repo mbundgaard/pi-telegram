@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.12 candidate — authorized publication pending
+## Current 0.6.12 release — verified
+
+- npm latest **0.6.12**, release commit `00f7e635624fbb85aec31fed6acd10da28e54722`, annotated tag `v0.6.12`. CI **43178167323** and publication **43178278934** succeeded. One tag push; registry lag resolved with read-only polling, no publication retry.
+- All **49 published files** byte-match the release commit. SHA-1 `a452424a87984b5f44e094392659a85e86d9cf37`; integrity `sha512-Ng0HeHXuy21QIGYBMyrNSt1kqNuYI4cW//EOW7oTcAJz01eoXvqnj/OMrGz9l43KcTcndTupK9eoGVulbVoClg==`. Hashes and decoded SLSA digest/tag/commit/workflow/run linkage verified, not independent cryptographic-chain validation.
+- Clean ci/typecheck/**324 tests**/full and production audits zero/pack49/diff passed. Dependencies unchanged. No workers, host install/reload or live cancellation test. Interrupt mode remains default off; scoped limitations below apply. Do not republish or rewrite v0.6.12.
+
+## Historical 0.6.12 candidate — authorized publication pending
 
 - Owner authorized commit/push and next npm release with Interrupt mode. Registry0.6.12 and remote tag were absent at preparation. Release follows docs/releasing.md; no workers or automatic host reload. Pending feature evidence and live limitations follow.
 

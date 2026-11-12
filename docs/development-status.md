@@ -2,7 +2,13 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.12 candidate — authorized publication pending
+## 0.6.12 released — verified
+
+npm latest **0.6.12** is verified, from `00f7e635624fbb85aec31fed6acd10da28e54722` and annotated tag `v0.6.12`. CI **43178167323** and Trusted Publishing **43178278934** succeeded. Tag pushed once; registry lag resolved by read-only polling, not republication.
+
+All **49 published files** byte-match the release commit. SHA-1 `a452424a87984b5f44e094392659a85e86d9cf37`; integrity `sha512-Ng0HeHXuy21QIGYBMyrNSt1kqNuYI4cW//EOW7oTcAJz01eoXvqnj/OMrGz9l43KcTcndTupK9eoGVulbVoClg==`. Registry hashes and decoded SLSA digest/tag/commit/repository/workflow/run linkage verified; no independent cryptographic attestation-chain verification. Clean ci/typecheck/324 tests/full and production audits zero/pack49/diff passed. No dependency change, workers, host install/reload or live cancellation test. Published docs retain the candidate snapshot. Interrupt mode is default off and its live/tool-child cancellation limitations remain.
+
+## Historical 0.6.12 candidate — authorized publication pending
 
 Owner authorized release, commit/push and tag-triggered publication. Version0.6.12 and remote tag were absent. Clean install/typecheck/**324 tests** (none skipped), full/production audits zero, pack49/diff passed. Dependencies unchanged. No live cancellation test, runtime settings mutation, workers or installation/reload. Publish through one matching tag after main CI, then verify registry/artifact/provenance linkage. Feature behavior and limitations follow.
 
