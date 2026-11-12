@@ -11,7 +11,7 @@ import { SecretFlow, type SecretOptions } from "./secret.ts";
 
 import { RESTART_BUSY, RESTART_UNSUPPORTED } from "./restart.ts";
 
-const TELEGRAM_HELP = ["Pi Telegram controls", "", "Normal message: steer active Telegram work, or start a new turn when idle", "/steer message: explicitly steer active work", "Leading ! characters are literal text", "/ping: check connection, project and loaded version", "/status: show the connected Pi session", "/feedback: optionally send product feedback after review", "/secret [filename]: choose a filename, then save text to the protected project directory", "/cancel: cancel native secret intake or feedback", "/stop or stop: cancel the current Telegram task and file download", "/reload: reload Pi resources when idle"].join("\n");
+const TELEGRAM_HELP = ["Pi Telegram controls", "", "Normal message: steer active Telegram work, or start a new turn when idle", "/steer message: explicitly steer active work", "/interrupt on|off: opt into interrupting this bot's work with new text (off by default)", "Leading ! characters are literal text", "/ping: check connection, project and loaded version", "/status: show the connected Pi session", "/feedback: optionally send product feedback after review", "/secret [filename]: choose a filename, then save text to the protected project directory", "/cancel: cancel native secret intake or feedback", "/stop or stop: cancel the current Telegram task and file download", "/reload: reload Pi resources when idle"].join("\n");
 type Choices = Array<{ label: string; reply: string }>;
 interface TelegramApiEnvelope<T> { ok: boolean; result?: T; description?: string; error_code?: number }
 interface TelegramMessage {
@@ -101,7 +101,7 @@ export class TelegramSessionConnection {
   private readonly secret: SecretFlow;
 
   constructor(private readonly token: string, private readonly ownerUserId: number,
-    private readonly options: { canStop?: () => boolean; onControlStop?: () => void; onDraftError?: () => void; ping?: () => string | undefined; restartRefusal?: () => string; botId?: number; feedback?: FeedbackOptions; secret?: SecretOptions } = {}) {
+    private readonly options: { canStop?: () => boolean; onControlStop?: () => void; interruptMode?: (argument?: string) => string; onDraftError?: () => void; ping?: () => string | undefined; restartRefusal?: () => string; botId?: number; feedback?: FeedbackOptions; secret?: SecretOptions } = {}) {
     this.secret = new SecretFlow(ownerUserId, options.botId, options.secret, {
       request: (method, body, signal) => this.call(method, body, signal),
       background: work => { void this.track(work).catch(() => this.reportDraftError()); },
@@ -575,7 +575,7 @@ export class TelegramSessionConnection {
   async configureCommandMenu(): Promise<void> {
     if (this.menuPending) return this.menuPending;
     const task = (async () => {
-      const commands = [ { command: "help", description: "Show Pi Telegram controls" }, { command: "ping", description: "Check connection and loaded version" }, { command: "status", description: "Show the connected Pi session" }, { command: "feedback", description: "Review and send product feedback" }, { command: "secret", description: "Choose a filename and save secret text" }, { command: "cancel", description: "Cancel secret intake or feedback" }, { command: "steer", description: "Steer active work: /steer message" }, { command: "stop", description: "Cancel the current Telegram task" }, { command: "reload", description: "Reload Pi resources when idle" } ];
+      const commands = [ { command: "help", description: "Show Pi Telegram controls" }, { command: "ping", description: "Check connection and loaded version" }, { command: "status", description: "Show the connected Pi session" }, { command: "feedback", description: "Review and send product feedback" }, { command: "secret", description: "Choose a filename and save secret text" }, { command: "cancel", description: "Cancel secret intake or feedback" }, { command: "interrupt", description: "Interrupt mode: /interrupt on or off" }, { command: "steer", description: "Steer active work: /steer message" }, { command: "stop", description: "Cancel the current Telegram task" }, { command: "reload", description: "Reload Pi resources when idle" } ];
       try { await this.call("setMyCommands", { commands, scope: { type: "chat", chat_id: this.ownerUserId } }, AbortSignal.timeout(20_000)); }
       catch (error) {
         if (!(error instanceof TelegramApiError) || error.errorCode !== 400 || !/chat not found/i.test(error.message)) throw error;
@@ -586,6 +586,8 @@ export class TelegramSessionConnection {
     this.menuPending = this.track(task);
     try { await task; } finally { if (this.menuPending === task) this.menuPending = undefined; }
   }
+  /** Called only after the host accepts an authorized interrupt request. */
+  interruptOutput(): void { this.cancelOperations(); }
   private cancelOperations(): void {
     this.cancelChatAction(); this.cancelThinking(); this.feedback.cancel(); this.secret.cancel();
     this.generation++; this.operation.abort(); this.operation = new AbortController();
@@ -712,6 +714,9 @@ export class TelegramSessionConnection {
     const text = message.text.trim(), command = parseTelegramBotCommand(text);
     if (command?.name === "start" || command?.name === "help") {
       void this.configureCommandMenu().catch(() => this.reportDraftError()); this.sendControlNotice(TELEGRAM_HELP); return;
+    }
+    if (command?.name === "interrupt") {
+      this.sendControlNotice(this.options.interruptMode?.(command.argument) ?? "Interrupt mode is unavailable."); return;
     }
     if (command?.name === "ping") {
       // Native control: no model input/receipt, even while the agent is busy.

@@ -27,11 +27,14 @@ import { createHash } from "node:crypto";
 import { reloadIntents } from "./reload-intent.ts";
 import { registerCompactionNotices } from "./compaction-notices.ts";
 import { configureQueueSettings } from "./queue-settings.ts";
+import { InterruptMode } from "./interrupt-mode.ts";
+import { abortable } from "./transport-queue.ts";
 
 const RELEASE_NOTES_URL = "https://github.com/mbundgaard/pi-telegram/blob/main/CHANGELOG.md";
 
 export default function piTelegram(pi: ExtensionAPI): void {
   const running = runningPackage();
+  const interrupt = new InterruptMode<TelegramSessionConnection>();
   const reloads = reloadIntents();
   let armedReload: string | undefined;
   let claimedReload: string | undefined;
@@ -96,6 +99,18 @@ export default function piTelegram(pi: ExtensionAPI): void {
           }
         })();
       }
+      if (!forceFollowUp && !forceSteer && interrupt.enabled &&
+          (interrupt.pending || (!ctx.isIdle() && responses.destination() === current))) {
+        if (!interrupt.pending && (ctx.hasPendingMessages?.() || responses.origins.hasPending ||
+            current.hasNativeInteraction || installing || approvedUpdate || pendingReload || armedReload)) {
+          current.sendControlNotice("Cannot interrupt while other input or a native operation is pending. Message was not queued; resend after it finishes, or use /steer.");
+          return;
+        }
+        const result = interrupt.add(current, text);
+        if (result === "full") current.sendControlNotice("Interrupt input is full. This message was not queued; resend after the replacement starts.");
+        else if (result === "start") pi.sendUserMessage("/pi-telegram-interrupt", { deliverAs: "followUp", expandPromptTemplates: true });
+        return;
+      }
       const routed = forceFollowUp ? { text, deliverAs: "followUp" as const } : forceSteer
         ? { text, deliverAs: "steer" as const }
         : routeTelegramInput(text, !ctx.isIdle());
@@ -110,7 +125,9 @@ export default function piTelegram(pi: ExtensionAPI): void {
       responses.destination() === current &&
       !!activeContext &&
       !activeContext.isIdle(),
+    interruptMode: argument => interrupt.configure(argument),
     stopTask: () => {
+      interrupt.clear();
       responses.reset();
       activeContext?.abort();
     },
@@ -167,6 +184,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
       })().catch(() => ctx.ui.notify("Telegram update notification could not be delivered.", "warning"));
     },
     disconnected: () => {
+      interrupt.reset();
       compactionNotices.reset();
       pendingReload = undefined;
       if (armedReload && !transferringReload) reloads.cancel(armedReload);
@@ -186,6 +204,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
       mode: ctx.mode,
     }),
     cancelReload: () => {
+      interrupt.clear();
       pendingReload = undefined;
       if (armedReload) reloads.cancel(armedReload);
     },
@@ -306,6 +325,55 @@ export default function piTelegram(pi: ExtensionAPI): void {
       } finally { installing = false; }
     },
   });
+  pi.on("message_start", event => {
+    // Another user turn taking over invalidates the waiting replacement.
+    if (event.message.role === "user" && interrupt.pending) {
+      const target = interrupt.pending.target;
+      interrupt.clear();
+      if (connections.connection === target) target.sendControlNotice("Other input started before the interrupt handoff. Resend the waiting messages when idle.");
+    }
+  });
+
+  pi.registerCommand("pi-telegram-interrupt", {
+    description: "Internal Telegram interrupt handoff (requires pending authenticated input)",
+    handler: async (_args, ctx) => {
+      const request = interrupt.pending;
+      if (!request || request.started) return;
+      request.started = true;
+      const session = ctx.sessionManager.getSessionId();
+      const valid = () => interrupt.pending === request && interrupt.enabled && connections.isReady &&
+        connections.connection === request.target && activeContext?.sessionManager === ctx.sessionManager &&
+        session === ctx.sessionManager.getSessionId() && connections.bot?.sessionId === session;
+      try {
+        if (!valid() || ctx.isIdle() || responses.destination() !== request.target || ctx.hasPendingMessages() ||
+            responses.origins.hasPending || request.target.hasNativeInteraction || installing || approvedUpdate) throw new Error();
+        // The command runs outside lifecycle hooks. Abort is a request; wait for actual host idle.
+        ctx.abort();
+        request.target.interruptOutput();
+        request.target.sendControlNotice("Interrupting current work. Waiting for it to stop before processing the new message.");
+        await abortable(ctx.waitForIdle(), AbortSignal.any([request.cancellation.signal, AbortSignal.timeout(30_000)]));
+        if (!valid() || !ctx.isIdle() || ctx.hasPendingMessages() || responses.origins.hasPending ||
+            request.target.hasNativeInteraction || installing || approvedUpdate) throw new Error();
+        const saved = await loadProjectSettings(ctx.cwd);
+        const assigned = saved && findSessionBot(saved, session);
+        if (!valid() || !ctx.isIdle() || ctx.hasPendingMessages() || responses.origins.hasPending ||
+            request.target.hasNativeInteraction || installing || approvedUpdate ||
+            assigned?.id !== connections.bot?.id || assigned?.token !== connections.bot?.token ||
+            assigned?.ownerUserId !== connections.bot?.ownerUserId) throw new Error();
+        const text = request.texts.length === 1 ? request.texts[0]! :
+          request.texts.map((text, i) => `Message ${i + 1}:\n${text}`).join("\n\n");
+        interrupt.pending = undefined;
+        const content = responses.origins.enqueue(text, request.target);
+        pi.sendUserMessage(content, { deliverAs: "followUp" });
+      } catch {
+        if (interrupt.pending === request) {
+          interrupt.clear();
+          if (connections.connection === request.target) request.target.sendControlNotice("Interrupt handoff did not complete. The new messages were not submitted; resend them when idle. Completed actions were not undone.");
+        }
+      }
+    },
+  });
+
   pi.registerCommand("pi-telegram-reload", {
     description: "Reload Pi after a Telegram request",
     handler: async (_args, ctx) => {

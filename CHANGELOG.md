@@ -2,6 +2,12 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.12 — optional Interrupt mode
+
+- Add native `/interrupt on`, `/interrupt off` and `/interrupt` status. Default off; resets off on reconnect/reload. Ordinary text can interrupt active work originating from the same Telegram connection, then submit new input after Pi becomes idle. Explicit `/steer`, native flows, attachments/buttons and unrelated console follow-ups retain their behavior.
+- Collect corrections received during cancellation in arrival order (8 messages / 32,768 characters). Never clear existing Pi queues. Recheck assignment, session, idle and pending work before handoff; Stop/off/disconnect, competing user input and failed cancellation prevent replacement submission. A 30-second wait bound requests resend rather than assuming cancellation succeeded.
+- Preserve conversation history and completed effects; cancellation is not rollback or guaranteed external-process termination. No Herdr calls or Pi core changes. Typecheck and 324 tests pass; live cancellation remains unverified. Dependencies unchanged; publication does not install or reload sessions.
+
 ## 0.6.11 — secret saving without Git
 
 - Remove all Git command execution and tracking/ignore verification from secret preparation and saving. Git availability, repository errors, and tracked files no longer block intake.

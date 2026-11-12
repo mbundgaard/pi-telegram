@@ -11,6 +11,16 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## 0.6.12 candidate — authorized publication pending
+
+- Owner authorized commit/push and next npm release with Interrupt mode. Registry0.6.12 and remote tag were absent at preparation. Release follows docs/releasing.md; no workers or automatic host reload. Pending feature evidence and live limitations follow.
+
+## Historical unreleased Interrupt mode — source tested
+
+- Owner authorized opt-in Interrupt mode, not publication. `/interrupt on|off` is native owner/private and connection-local, default/reset off. Ordinary text can interrupt only active Telegram-originated work; `/steer`, attachments/buttons/native flows and unrelated-console follow-ups retain their behavior.
+- Authenticated pending text arms an internal command that requests abort and awaits public `waitForIdle()` (30-second bound), then rechecks idle/queue/session/assignment before submitting a fresh follow-up. Up to8 texts/32768 characters accumulate in arrival order. Existing queued input is never cleared. Stop/off/disconnect or another user turn invalidate waiting text. Failed handoff requests resend; completed effects remain. Output previews/activity are retired using existing transport cleanup.
+- Examined SDK1.3.0 host abort/wait semantics; no Herdr, workers, process kill, core changes or lifecycle-handler wait. Typecheck/**324 tests** (none skipped), full audit zero, pack49 and diff check pass. Tests cover ordinary/default/console/explicit steering, native authentication, batching, cancellation waiting, Stop/off/disconnect, competing user input/queue/native interactions, changed assignment and wait failure. Live cancellation and external child termination remain unverified. No install/reload/version bump/commit/publication.
+
 ## Current 0.6.11 release — verified
 
 - npm latest **0.6.11**, release commit `b6328c09f26814fe7cb4d9cc706a9faa547cde51`, annotated tag `v0.6.11`. CI **42499084315** and tag publication **42499155063** succeeded. One tag push; propagation resolved read-only, no publication retry.

@@ -2,6 +2,18 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
+## 0.6.12 candidate — authorized publication pending
+
+Owner authorized release, commit/push and tag-triggered publication. Version0.6.12 and remote tag were absent. Clean install/typecheck/**324 tests** (none skipped), full/production audits zero, pack49/diff passed. Dependencies unchanged. No live cancellation test, runtime settings mutation, workers or installation/reload. Publish through one matching tag after main CI, then verify registry/artifact/provenance linkage. Feature behavior and limitations follow.
+
+## Historical unreleased Interrupt mode
+
+Native `/interrupt on|off` toggles an opt-in connection-local mode, reset off on reconnect/reload. Eligible ordinary owner text during this bot's active work is held locally; an authenticated pending request authorizes an internal command to call public `ctx.abort()` and then `ctx.waitForIdle()`. The internal command dispatch uses `expandPromptTemplates:true`, intentionally immediate outside lifecycle hooks. Existing source-checked SDK1.3.0 abort sets the run-abort flag, cancels retry/compaction and waits for idle; the extension still verifies idle and pending queues afterward and after asynchronous saved-assignment verification. No claim of child-process termination or rollback. No Herdr or core changes.
+
+Existing pending Pi input or native interactions refuse interruption with a resend notice rather than clearing queues. Up to8 messages/32768 characters accumulate before handoff, in order, with a 30-second cancellation-wait bound. Stop/off/disconnect, another begun user message, changed assignment or failed wait prevent submission. Late external tool effects cannot be rolled back; manual retries may repeat earlier work. Native commands, explicit steering, attachments/button follow-ups and unrelated-console work retain existing behavior. Secret/feedback exact replies remain native. The internal command without an authenticated pending request is inert.
+
+Typecheck and **324 tests** pass (none skipped); full audit zero, pack49 and diff check pass. Mocked registered-extension cases cover default/off, authorized handoff and corrections while stopping, console isolation, explicit steering, existing/new pending input, Stop/off/disconnect, another user turn, native interaction, verification failure and failed idle wait. Helper/transport tests cover bounds and owner/private command binding. No live abort/tool-child test, real config changes, install/reload, commit, publication or workers. Current npm version remains0.6.11; this feature requires separate activation/release.
+
 ## 0.6.11 released — verified
 
 Public npm latest **0.6.11** is verified, from `b6328c09f26814fe7cb4d9cc706a9faa547cde51` and annotated tag `v0.6.11`. CI **42499084315** and Trusted Publishing **42499155063** succeeded. Tag pushed once; registry propagation resolved by read-only polling, no publication retry.

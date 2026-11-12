@@ -48,6 +48,14 @@ Open the new bot's private Telegram chat, press **Start**, then send the exact o
 
 A regular BotFather bot can be restored after reinstall by adding its username/token again. Re-adding an already paired project bot preserves its stored owner. Changing owners requires explicitly removing the local entry and pairing again; do not edit the owner field manually.
 
+### Interrupt mode (0.6.12)
+
+Send `/interrupt on` in the paired private bot chat to opt in for the current connection. `/interrupt` reports the mode; `/interrupt off` turns it off and discards any waiting replacement. It defaults to off and resets to off on reconnect/reload. The setting does not affect other bots or sessions.
+
+When enabled, ordinary text arriving during this bot's active agent work requests cancellation, clears the old output preview/activity, and waits for Pi to become idle before submitting the new text as a fresh follow-up. The previous conversation remains in context; completed actions are not undone. `/steer message` explicitly keeps steering behavior. Unrelated console work still receives follow-ups without cancellation; attachments, button replies, native commands and native secret/feedback flows are not interruption triggers.
+
+Text arriving while cancellation is settling is kept in arrival order and submitted together (up to 8 messages / 32,768 characters); excess messages receive a resend notice. If other input is already queued or a native interaction is active, interruption is refused with a resend notice instead of deleting another queue. If another user turn starts, the assignment changes, Stop/disconnect occurs, or cancellation cannot settle within 30 seconds, waiting replacement text is not submitted. Relevant failures request a resend; Stop/off/disconnect intentionally discard the waiting replacement. Cancellation does not guarantee termination of external processes, and a slow tool may continue after the timeout. No Herdr call, process kill, transcript deletion or automatic retry is used. This flow has mocked integration tests, not live cancellation verification.
+
 ### Telegram label in Pi's standard footer (0.6.10)
 
 When connected in the terminal, Pi Telegram appends ` • @username` to the existing session name (or uses `@username` when unnamed). Pi's standard footer displays it on the folder/branch/session-name line; no custom footer is installed and no separate Telegram status line is used. Reconnecting with the same label does not append duplicates. The name is persisted and remains after disconnect. Another extension or `/name` can replace it; Pi Telegram does not continuously rewrite the name or coordinate naming with other extensions.
@@ -96,6 +104,7 @@ One host-local lease protects polling/pairing. Release the old integration befor
 | `/ping` | Native connection check: Pong, project and loaded package version; no model turn |
 | `/status` | Project, branch when available, host/IP and controls |
 | `stop` / `/stop` | Requests cancellation of eligible Telegram-originated work; not proof all workers stopped |
+| `/interrupt [on\|off]` | Check/toggle connection-local interrupt mode; off by default |
 | `/reload` | Requests Pi reload while idle; does not replace the Pi process |
 | `/help` | Lists Telegram controls |
 | `/secret [filename]` | Native filename/content intake; never put values in the command |

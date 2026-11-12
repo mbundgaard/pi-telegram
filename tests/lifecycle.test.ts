@@ -111,6 +111,7 @@ function harness(cwd: string, sessionId = "main") {
     inputs,
     emit,
     command: (name: string) => commands.get(name)!("", ctx),
+    commandContext: (name: string, extra: object) => commands.get(name)!("", Object.assign(Object.create(ctx), extra)),
     tool: (name: string, params: unknown = {}) => tools.get(name).execute("test", params, undefined, undefined, ctx),
     prompts: () => prompts,
     setIdle: (value: boolean) => {
@@ -1305,3 +1306,83 @@ test("queue startup configuration notifies Telegram once and never injects reloa
       if (previous === undefined) delete process.env.PI_CODING_AGENT; else process.env.PI_CODING_AGENT = previous;
     }
   }));
+
+for (const outcome of ["complete", "stop", "off", "disconnect", "other-user", "pending", "busy-after", "native-after", "verify-failure", "wait-failure", "default", "console", "steer", "queued-before"] as const) {
+  test(`interrupt mode handoff: ${outcome}`, async () => fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const fetch = globalThis.fetch;
+    let deliver: ((response: Response) => void) | undefined;
+    globalThis.fetch = (async (url, init) => {
+      if (String(url).endsWith("/getUpdates") && JSON.parse(String(init?.body)).offset !== -1) {
+        return new Promise<Response>((resolve, reject) => {
+          deliver = resolve;
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+        });
+      }
+      return fetch(url, init);
+    }) as typeof fetch;
+    const pi = harness(cwd);
+    let id = 0;
+    const send = async (...texts: string[]) => {
+      for (let i = 0; i < 100 && !deliver; i++) await new Promise(r => setTimeout(r, 5));
+      assert.ok(deliver);
+      const next = deliver; deliver = undefined;
+      next(new Response(JSON.stringify({ ok: true, result: texts.map(text => ({ update_id: ++id, message: {
+        message_id: id, text, chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
+      } })) })));
+      for (let i = 0; i < 100 && !deliver; i++) await new Promise(r => setTimeout(r, 5));
+    };
+    let finish!: () => void;
+    const waiting = new Promise<void>(resolve => { finish = resolve; });
+    try {
+      await pi.emit("session_start");
+      await send("first request");
+      const original = pi.sent[0]!;
+      await pi.emit("input", { text: original, source: "extension" });
+      await pi.emit("message_start", { message: { role: "user", content: original } });
+      pi.setIdle(false);
+      if (outcome === "console") await pi.emit("message_start", { message: { role: "user", content: "console work" } });
+      if (outcome === "queued-before") (pi.ctx as any).hasPendingMessages = () => true;
+      if (outcome === "default" || outcome === "console" || outcome === "steer" || outcome === "queued-before") {
+        if (outcome !== "default") await send("/interrupt on");
+        await send(outcome === "steer" ? "/steer second request" : "second request");
+        assert.equal(pi.aborts(), 0);
+        if (outcome === "queued-before") assert.equal(pi.sent.length, 1);
+        else {
+          assert.equal(pi.sent.length, 2);
+          assert.notEqual(pi.sent[1], "/pi-telegram-interrupt");
+          assert.equal(pi.deliveries[1]?.deliverAs, outcome === "console" ? "followUp" : "steer");
+        }
+        return;
+      }
+      await send("/interrupt on", "second request", "correction to second");
+      assert.equal(pi.sent.length, 2);
+      assert.equal(pi.sent[1], "/pi-telegram-interrupt");
+      assert.equal(pi.aborts(), 0, "command has not executed yet");
+      let pendingHostInput = false;
+      const handoff = pi.commandContext("pi-telegram-interrupt", {
+        hasPendingMessages: () => pendingHostInput,
+        waitForIdle: () => outcome === "wait-failure" ? Promise.reject(new Error("dummy")) : waiting,
+      });
+      assert.equal(pi.aborts(), 1);
+      assert.equal(pi.sent.length, 2, "replacement waits for cancellation completion");
+      if (outcome === "complete") await send("last correction while stopping");
+      if (outcome === "stop") await send("/stop");
+      if (outcome === "off") await send("/interrupt off");
+      if (outcome === "disconnect") await pi.emit("session_shutdown");
+      if (outcome === "other-user") await pi.emit("message_start", { message: { role: "user", content: "console input" } });
+      if (outcome === "pending") pendingHostInput = true;
+      if (outcome === "native-after") await pi.tool("telegram_post", { message: "Question", buttons: [{ label: "Yes", reply: "Yes" }] });
+      if (outcome === "verify-failure") await saveProjectSettings(cwd, { version: 2, bots: [bot("111", null)] });
+      pi.setIdle(outcome !== "busy-after"); finish(); await handoff;
+      if (outcome === "complete") {
+        assert.equal(pi.sent.length, 3);
+        assert.match(pi.sent[2]!, /Message 1:\nsecond request\n\nMessage 2:\ncorrection to second/);
+        assert.match(pi.sent[2]!, /Message 3:\nlast correction while stopping/);
+        assert.equal(pi.deliveries[2]?.deliverAs, "followUp");
+      } else assert.equal(pi.sent.length, 2, "invalidated handoff must not submit replacement");
+      await pi.commandContext("pi-telegram-interrupt", { hasPendingMessages: () => false, waitForIdle: async () => {} });
+      assert.ok(pi.aborts() <= (outcome === "stop" ? 2 : 1), "internal command cannot replay");
+    } finally { finish(); await pi.emit("session_shutdown"); }
+  }));
+}

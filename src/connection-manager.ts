@@ -38,6 +38,7 @@ export class ConnectionManager {
       disconnected(): void;
       reload(ctx: ExtensionContext): boolean;
       cancelReload?(): void;
+      interruptMode?(argument?: string): string;
       restartRefusal?(ctx: ExtensionContext): string;
       version?: string;
       feedbackEndpoint?: string;
@@ -137,6 +138,9 @@ export class ConnectionManager {
             return "Restart refused: this Telegram connection is no longer ready. Nothing was scheduled.";
           return this.callbacks.restartRefusal?.(ctx) ?? RESTART_UNSUPPORTED;
         },
+        interruptMode: argument => this.isReady && this.connection === current
+          ? this.callbacks.interruptMode?.(argument) ?? "Interrupt mode is unavailable."
+          : "Interrupt mode is unavailable while disconnected.",
         onControlStop: () => { if (this.connection === current) this.callbacks.cancelReload?.(); },
         canStop: () =>
           this.connection === current && this.callbacks.canStop(current),
