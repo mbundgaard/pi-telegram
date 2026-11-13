@@ -89,7 +89,7 @@ test("reload is rejected with a direct reply while Pi is busy", async () => {
     assert.equal(reloadChecks, 1);
     assert.equal(
       sentMessages[0]?.text,
-      "Reload is unavailable while Pi is busy. Try /reload again after the current task finishes.",
+      "Reload is unavailable: Pi has active or queued work, a file transfer or package installation is in progress, or this connection is no longer current. Try again after the operation finishes.",
     );
   } finally {
     await connection.stop();

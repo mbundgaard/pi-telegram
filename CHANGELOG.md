@@ -2,6 +2,13 @@
 
 Release notes for `@comput/pi-telegram`, newest first. This file is included in every npm package from 0.2.3 onward. Agents reviewing an upgrade should read all entries newer than the installed version, including upgrade notes and limitations. Update checks discover versions; they do not automatically inject these notes into agent context.
 
+## 0.6.13 — live-state controls
+
+- Stop and ordinary message routing now use Pi's live idle state instead of remembered Telegram task ownership. Owner/private Stop can cancel console-originated work; ordinary text steers it, or enabled Interrupt mode aborts/waits/submits replacement input. Attachments/buttons remain follow-ups; file-delivery provenance remains protected.
+- Remove receipt-pending bookkeeping from execution eligibility, including its accessor. Orphan receipts, queued update approval, previous reload requests and optional reload-acknowledgement state no longer block idle reload. Live host queued/active work and actual installation/download protections remain.
+- Startup-settings and refusal-only restart diagnostics also stop treating receipts/update approval/reload bookkeeping as Pi activity. Actual installation is distinguished from agent work. Restart remains unsupported.
+- Typecheck and 328 tests pass; audits clean. No core changes or dependency changes. Live recovery/cancellation remains unverified; publication does not install or reload sessions.
+
 ## 0.6.12 — optional Interrupt mode
 
 - Add native `/interrupt on`, `/interrupt off` and `/interrupt` status. Default off; resets off on reconnect/reload. Ordinary text can interrupt active work originating from the same Telegram connection, then submit new input after Pi becomes idle. Explicit `/steer`, native flows, attachments/buttons and unrelated console follow-ups retain their behavior.

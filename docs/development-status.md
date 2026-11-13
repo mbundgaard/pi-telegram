@@ -2,6 +2,18 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
+## 0.6.13 candidate — authorized publication pending
+
+Owner authorized patch release/commit/push/tag publication. Registry0.6.13 and remote tag were absent. Release scope is live-state control simplification below; no dependencies changed, no workers or host installation/reload. Validate clean install/typecheck/tests/audits/pack/diff, then main CI before one annotated tag push and public artifact verification.
+
+## Historical unreleased live-state control simplification
+
+Owner authorized the first retirement pass, not publication. Stop checks live Pi idle state, regardless of remembered Telegram/console origin, and reports cancellation requested rather than claiming termination. Ordinary messages steer active Pi work; enabled Interrupt mode requests abort and awaits host idle before replacement, including console-originated work. Attachments/button replies remain follow-ups. Authenticated file delivery still requires a begun Telegram receipt; admission alone does not grant it.
+
+Reload no longer treats orphan pending receipts, queued update approval, previous pending reload or acknowledgement flags as agent busy. Live host idle/pending input, current connection/assignment and actual installation guards remain; incoming downloads must still finish/cancel. Optional acknowledgement-slot failure cannot veto reload. Pending reload authorization remains one-use, not execution-state truth. Existing response receipts/reminder and native interaction/transport states are retained. The follow-on pass removes the receipt `hasPending` accessor entirely and stops using receipt/update-approval/reload bookkeeping to veto startup-default configuration. Refusal-only restart likewise queries live pending input; its only separate operation guard is explicitly named `installationInProgress`, with a distinct notice rather than pretending the host is busy. Restart remains unimplemented; no new launch or Herdr call.
+
+Typecheck/**328 tests** (none skipped), audit zero, pack49 and diff checks pass. Registered-extension tests cover idle reload/restart diagnostics despite orphan receipts, idle reload despite an unconsumed handoff, live busy/queued refusal then recovery, stale acknowledgement-slot fallback, console-origin Stop/steering/interrupt and unchanged file-provenance fencing. Helper tests verify receipt lifecycle retains provenance isolation without participating in restart eligibility, and distinguish actual installation from host work. No workers, real settings mutation, version/dependency change, commit/push/publication, install/reload or live cancellation test. Owner's original live blocker is not independently established.
+
 ## 0.6.12 released — verified
 
 npm latest **0.6.12** is verified, from `00f7e635624fbb85aec31fed6acd10da28e54722` and annotated tag `v0.6.12`. CI **43178167323** and Trusted Publishing **43178278934** succeeded. Tag pushed once; registry lag resolved by read-only polling, not republication.

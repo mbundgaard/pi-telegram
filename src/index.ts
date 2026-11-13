@@ -100,9 +100,8 @@ export default function piTelegram(pi: ExtensionAPI): void {
         })();
       }
       if (!forceFollowUp && !forceSteer && interrupt.enabled &&
-          (interrupt.pending || (!ctx.isIdle() && responses.destination() === current))) {
-        if (!interrupt.pending && (ctx.hasPendingMessages?.() || responses.origins.hasPending ||
-            current.hasNativeInteraction || installing || approvedUpdate || pendingReload || armedReload)) {
+          (interrupt.pending || !ctx.isIdle())) {
+        if (!interrupt.pending && (ctx.hasPendingMessages?.() || current.hasNativeInteraction || installing)) {
           current.sendControlNotice("Cannot interrupt while other input or a native operation is pending. Message was not queued; resend after it finishes, or use /steer.");
           return;
         }
@@ -114,17 +113,12 @@ export default function piTelegram(pi: ExtensionAPI): void {
       const routed = forceFollowUp ? { text, deliverAs: "followUp" as const } : forceSteer
         ? { text, deliverAs: "steer" as const }
         : routeTelegramInput(text, !ctx.isIdle());
-      // Never steer unrelated console work. Queue a separate follow-up turn;
-      // enqueue/input admission alone must not grant that work Telegram authority.
-      const deliverAs = routed.deliverAs === "steer" && !ctx.isIdle() && responses.destination() !== current
-        ? "followUp" : routed.deliverAs;
+      // Pi's live state determines delivery; provenance is not an execution-state cache.
+      const deliverAs = routed.deliverAs;
       const content = responses.origins.enqueue(routed.text, current);
       pi.sendUserMessage(content, { deliverAs });
     },
-    canStop: (current) =>
-      responses.destination() === current &&
-      !!activeContext &&
-      !activeContext.isIdle(),
+    canStop: () => !!activeContext && !activeContext.isIdle(),
     interruptMode: argument => interrupt.configure(argument),
     stopTask: () => {
       interrupt.clear();
@@ -147,8 +141,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
           cwd: ctx.cwd,
           current: () => !lifetime.signal.aborted && activeContext === ctx && connections.isReady &&
             connections.connection === current && connections.bot?.sessionId === ctx.sessionManager.getSessionId() &&
-            ctx.isIdle() && !ctx.hasPendingMessages?.() && !responses.origins.hasPending &&
-            !current.hasNativeInteraction && !installing && !approvedUpdate && !pendingReload && !armedReload,
+            ctx.isIdle() && !ctx.hasPendingMessages?.() && !current.hasNativeInteraction && !installing,
           notify: message => current.sendControlNotice(message),
         });
       }
@@ -200,7 +193,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
       current: connections.isReady && activeContext === ctx,
       idle: ctx.isIdle(),
       pending: ctx.hasPendingMessages?.(),
-      localPending: responses.origins.hasPending || installing || !!approvedUpdate,
+      installationInProgress: installing,
       mode: ctx.mode,
     }),
     cancelReload: () => {
@@ -209,9 +202,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
       if (armedReload) reloads.cancel(armedReload);
     },
     reload: (ctx) => {
-      if (pendingReload && pendingReload.expires <= performance.now()) pendingReload = undefined;
-      if (!connections.isReady || activeContext !== ctx || !ctx.isIdle() || ctx.hasPendingMessages?.() ||
-          responses.origins.hasPending || installing || approvedUpdate || pendingReload || armedReload) return false;
+      if (!connections.isReady || activeContext !== ctx || !ctx.isIdle() || ctx.hasPendingMessages?.() || installing) return false;
       pendingReload = { connection: connections.connection!, manager: ctx.sessionManager,
         session: ctx.sessionManager.getSessionId(), expires: performance.now() + 30_000 };
       pi.sendUserMessage("/pi-telegram-reload", {
@@ -345,19 +336,16 @@ export default function piTelegram(pi: ExtensionAPI): void {
         connections.connection === request.target && activeContext?.sessionManager === ctx.sessionManager &&
         session === ctx.sessionManager.getSessionId() && connections.bot?.sessionId === session;
       try {
-        if (!valid() || ctx.isIdle() || responses.destination() !== request.target || ctx.hasPendingMessages() ||
-            responses.origins.hasPending || request.target.hasNativeInteraction || installing || approvedUpdate) throw new Error();
+        if (!valid() || ctx.isIdle() || ctx.hasPendingMessages() || request.target.hasNativeInteraction || installing) throw new Error();
         // The command runs outside lifecycle hooks. Abort is a request; wait for actual host idle.
         ctx.abort();
         request.target.interruptOutput();
         request.target.sendControlNotice("Interrupting current work. Waiting for it to stop before processing the new message.");
         await abortable(ctx.waitForIdle(), AbortSignal.any([request.cancellation.signal, AbortSignal.timeout(30_000)]));
-        if (!valid() || !ctx.isIdle() || ctx.hasPendingMessages() || responses.origins.hasPending ||
-            request.target.hasNativeInteraction || installing || approvedUpdate) throw new Error();
+        if (!valid() || !ctx.isIdle() || ctx.hasPendingMessages() || request.target.hasNativeInteraction || installing) throw new Error();
         const saved = await loadProjectSettings(ctx.cwd);
         const assigned = saved && findSessionBot(saved, session);
-        if (!valid() || !ctx.isIdle() || ctx.hasPendingMessages() || responses.origins.hasPending ||
-            request.target.hasNativeInteraction || installing || approvedUpdate ||
+        if (!valid() || !ctx.isIdle() || ctx.hasPendingMessages() || request.target.hasNativeInteraction || installing ||
             assigned?.id !== connections.bot?.id || assigned?.token !== connections.bot?.token ||
             assigned?.ownerUserId !== connections.bot?.ownerUserId) throw new Error();
         const text = request.texts.length === 1 ? request.texts[0]! :
@@ -380,7 +368,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
       const request = pendingReload;
       if (!request || request.expires <= performance.now() || request.manager !== ctx.sessionManager ||
           request.session !== ctx.sessionManager.getSessionId() || !ctx.isIdle() || ctx.hasPendingMessages?.() ||
-          responses.origins.hasPending || installing || approvedUpdate) { pendingReload = undefined; return; }
+          installing) { pendingReload = undefined; return; }
       let identity: string | undefined;
       try { identity = await reloadIdentity(ctx); }
       catch { if (pendingReload === request) pendingReload = undefined; return; }
@@ -388,14 +376,14 @@ export default function piTelegram(pi: ExtensionAPI): void {
       pendingReload = undefined;
       if (!identity || !connections.isReady || connections.connection !== request.connection || request.expires <= performance.now() ||
           request.session !== ctx.sessionManager.getSessionId() || !ctx.isIdle() || ctx.hasPendingMessages?.() ||
-          responses.origins.hasPending || installing || approvedUpdate) return;
+          installing) return;
       const intent = reloads.arm(identity, ctx.sessionManager);
-      if (!intent) return;
+      // Acknowledgement is optional: exhausted/stale notice state must never veto reload.
       armedReload = intent;
       try { await ctx.reload(); }
       finally {
         // Only process-owned data cleanup: never reuse the retired context/API.
-        reloads.cancel(intent);
+        if (intent) reloads.cancel(intent);
         armedReload = undefined;
       }
     },
@@ -554,7 +542,7 @@ export default function piTelegram(pi: ExtensionAPI): void {
     return target;
   };
   const outboundGuidelines = [
-    "Use telegram_post, telegram_draft, telegram_edit and telegram_activity explicitly for intended replies and milestone progress; ordinary assistant text is not forwarded. Post/draft/edit/activity can proactively target only this session's ready, verified bot, without prior inbound text. File/photo tools and Stop retain their provenance boundaries. Never automatically connect or switch bots.",
+    "Use telegram_post, telegram_draft, telegram_edit and telegram_activity explicitly for intended replies and milestone progress; ordinary assistant text is not forwarded. Post/draft/edit/activity can proactively target only this session's ready, verified bot, without prior inbound text. File/photo tools retain their request-provenance boundaries. Native Stop is authenticated to the owner/private connection and uses Pi's live run state. Never automatically connect or switch bots.",
     "Keep hidden reasoning, private prompts, raw tool arguments/results and console transcripts private. Use concise public outcomes and generic activity. Delivery success is not approval. If delivery is uncertain, do not blindly replay the operation.",
     "Telegram input and agent output are independent: do not wait for a model/human response in transport or for an incoming message before authorized progress. Tools await bounded API delivery and preserve per-connection ordering, not human answers. Workers report to the coordinator; only explicit calls publish Telegram content.",
   ];

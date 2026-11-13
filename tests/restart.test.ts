@@ -4,13 +4,14 @@ import { RESTART_BUSY, RESTART_UNSUPPORTED, restartRefusal } from "../src/restar
 import { TelegramSessionConnection } from "../src/telegram.ts";
 import { RequestOrigins } from "../src/request-routing.ts";
 
-const idle = { current: true, idle: true, pending: false, localPending: false, mode: "tui" };
+const idle = { current: true, idle: true, pending: false, installationInProgress: false, mode: "tui" };
 const linuxHerdr = { platform: "linux", herdr: "1" };
 
 test("restart refuses busy, queued, unknown-host and unsupported mode/platform without granting capability from markers", () => {
   assert.equal(restartRefusal(idle, linuxHerdr), RESTART_UNSUPPORTED);
-  for (const patch of [{ idle: false }, { pending: true }, { localPending: true }])
+  for (const patch of [{ idle: false }, { pending: true }])
     assert.equal(restartRefusal({ ...idle, ...patch }, linuxHerdr), RESTART_BUSY);
+  assert.match(restartRefusal({ ...idle, installationInProgress: true }, linuxHerdr), /package installation is in progress/);
   assert.match(restartRefusal({ ...idle, pending: undefined }, linuxHerdr), /cannot verify pending work/);
   assert.match(restartRefusal({ ...idle, current: false }, linuxHerdr), /no longer ready/);
   for (const mode of ["rpc", "print", "json", undefined])
@@ -19,20 +20,21 @@ test("restart refuses busy, queued, unknown-host and unsupported mode/platform w
     assert.match(restartRefusal(idle, host), /only a verified Linux/);
 });
 
-test("restart pending receipt guard includes not-yet-admitted input and resets without changing origin authority", () => {
+test("request receipts establish provenance but cannot change live restart eligibility", () => {
   const origins = new RequestOrigins<object>();
   const destination = {};
-  assert.equal(origins.hasPending, false);
   const content = origins.enqueue("work", destination);
-  assert.equal(origins.hasPending, true);
   assert.equal(origins.current, undefined);
+  assert.equal(restartRefusal(idle, linuxHerdr), RESTART_UNSUPPORTED);
   origins.admit(content, "extension");
-  assert.equal(origins.hasPending, true);
   assert.equal(origins.begin(content), destination);
-  assert.equal(origins.hasPending, false);
-  origins.enqueue("next", destination);
+  assert.equal(restartRefusal(idle, linuxHerdr), RESTART_UNSUPPORTED);
+  const retired = origins.enqueue("next", destination);
   origins.reset();
-  assert.equal(origins.hasPending, false);
+  assert.equal(origins.current, undefined);
+  assert.equal(origins.begin(retired), undefined);
+  assert.equal(origins.invalidated, true);
+  assert.equal(restartRefusal(idle, linuxHerdr), RESTART_UNSUPPORTED);
 });
 
 test("native restart is owner/private, refuses duplicates, and never invokes reload or model input", () => {

@@ -11,6 +11,17 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
+## 0.6.13 candidate — authorized publication pending
+
+Owner authorized patch bump, commit/push and tag-triggered publication. Registry0.6.13 and matching tag were absent at preparation. Follow docs/releasing.md; no automatic host installation/reload. Behavior and validation scope follow.
+
+## Historical unreleased live-state controls — owner authorized
+
+- Stop eligibility now queries live Pi `isIdle()` without requiring remembered Telegram task origin. Ordinary text steers any active Pi work, including console work; opt-in Interrupt mode likewise uses live Pi state and pending-input checks. This deliberately supersedes historical console-task protection for authenticated owner controls, not outbound-file provenance.
+- Reload gates no longer depend on receipt `hasPending`, queued update approval, pending reload or acknowledgement flags. Current connection, actual host idle/pending-input and active installation checks remain. Download protection remains. One-use command authorization/assignment verification remain; inability to arm an optional acknowledgement no longer prevents reload.
+- Provenance records remain for outbound file authority, stale input and reminders. The receipt `hasPending` accessor is removed entirely; startup-settings/restart decisions now also use live host pending input rather than receipt/update-approval/reload bookkeeping. Startup settings still avoid actual native interactions/installation; refusal-only restart explicitly identifies an active installation separately from Pi work. Transport/native-flow states remain. No claim that all internal state has been removed or live incident reproduced.
+- Validation results recorded in docs/development-status.md. No workers, version/dependency changes, commit/push/publication, installation/reload or live cancellation tests for this change.
+
 ## Current 0.6.12 release — verified
 
 - npm latest **0.6.12**, release commit `00f7e635624fbb85aec31fed6acd10da28e54722`, annotated tag `v0.6.12`. CI **43178167323** and publication **43178278934** succeeded. One tag push; registry lag resolved with read-only polling, no publication retry.
@@ -456,13 +467,13 @@ Do not initialize Git, commit, push, tag, or publish without explicit user autho
 ## Telegram and AI integration
 
 - Accept only private text and supported document/photo/voice-note attachments from the stored Telegram owner; voice is unreleased intake only, not automatic transcription.
-- Ordinary text steers authenticated Telegram work while busy and starts normally when idle; leading `!` characters remain literal. Ordinary text and explicit `/steer` targeting unrelated busy work use a follow-up turn instead, never console steering. Queue admission does not grant request authority until its authenticated user turn begins. Buttons and attachments remain follow-ups. Do not send queued acknowledgements.
+- Unreleased: ordinary text steers Pi's current work while busy and starts normally when idle; enabled Interrupt mode requests abort/waits/submits instead, including console-originated work. Leading `!` characters remain literal. This supersedes published console-follow-up protection. Queue admission does not grant request authority until its authenticated user turn begins. Buttons and attachments remain follow-ups. Do not send queued acknowledgements.
 - One-use in-memory request receipts admitted via Pi's extension input source bind output to the receiving connection. The public transport prefix is formatting guidance, not evidence of origin. Clear receipts on disconnect/session replacement.
 - Do not automatically forward assistant text or tool activity. Agent content goes through explicit `telegram_post`, `telegram_draft`, `telegram_edit` and `telegram_activity` calls, including proactive sends from console/scheduled work. Generic `telegram_send` is removed in unreleased source. Never expose hidden reasoning, prompts, raw tool arguments/results, or credentials.
 - The concise inbound notice guides replies, milestone progress and Rich Markdown formatting, not authentication; streaming mechanics remain in tool descriptions/guidelines.
 - Explicitly call activity `working` at work start and while activity continues; refresh before 15-minute expiry. Call activity `clear` when no work continues; it does not finalize/discard drafts. Execution/worker activity is not automatically mirrored.
 - Post persists Rich Markdown with optional buttons; Draft explicitly starts/updates/finalizes/discards full replacement previews, without prefix inference. Edit replaces a returned non-button messageRef. Refs are connection-scoped; stale refs are rejected. No MarkdownV2/plain-text fallback for model answers.
-- Stop eligibility follows inbound provenance, independently of status visibility. No settled transcript replay. Background status failures produce rate-limited local warnings.
+- Unreleased Stop eligibility uses live Pi state through authenticated owner/private native controls, independently of remembered request origin or status visibility. No settled transcript replay. Background status failures produce rate-limited local warnings.
 - Setup requires local interactive TUI; masked tokens must never pass through chat or model-callable tool arguments.
 
 ## Source map

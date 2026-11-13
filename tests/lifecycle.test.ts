@@ -23,6 +23,8 @@ import { wrapTelegramInput } from "../src/routing.ts";
 import { FEEDBACK_ENDPOINT } from "../src/feedback-endpoint.ts";
 import { runningPackage } from "../src/updates.ts";
 
+import { reloadIntents } from "../src/reload-intent.ts";
+
 // Exercise the registered extension events/commands, not just helper functions.
 type Handler = (event: any, ctx: any) => any;
 const bot = (
@@ -1058,7 +1060,7 @@ test("busy button replies remain authenticated follow-ups without queued notices
   }));
 
 for (const input of ["change direction", "!change direction", "/steer change direction", "!!literal bang"]) {
-  test(`busy console input ${JSON.stringify(input)} becomes a trusted follow-up only when its new turn begins`, async () =>
+  test(`busy console input ${JSON.stringify(input)} steers using live Pi state without granting file authority before its turn begins`, async () =>
   fixture(async (cwd, network) => {
     await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
     await writeFile(join(cwd, "public.txt"), "public report");
@@ -1095,7 +1097,7 @@ for (const input of ["change direction", "!change direction", "/steer change dir
       await pi.emit("session_start");
       for (let i = 0; i < 100 && !deliver; i++) await new Promise(r => setTimeout(r, 10));
       assert.equal(pi.sent.length, 1);
-      assert.equal(pi.deliveries[0]?.deliverAs, "followUp");
+      assert.equal(pi.deliveries[0]?.deliverAs, "steer");
       const text = pi.sent[0]!;
       const expected = input.startsWith("/steer ") ? input.slice(7) : input;
       assert.ok(text.startsWith(`${wrapTelegramInput(expected)}\n\n[Pi Telegram request: `));
@@ -1104,22 +1106,25 @@ for (const input of ["change direction", "!change direction", "/steer change dir
       await pi.emit("input", { text, source: "extension" });
       await assert.rejects(pi.tool("telegram_send_file", { path: "public.txt" }), /current Telegram-originated request/);
       await push(2, "/stop");
-      assert.equal(pi.aborts(), 0, "queued/admitted Telegram text does not grant console Stop authority");
+      assert.equal(pi.aborts(), 1, "Stop consults live Pi state even for console-origin work");
       assert.equal(uploads, 0);
       assert.equal(pi.sent.length, 1, "no automatic acknowledgement or model reply");
       await pi.emit("turn_end", { message: { role: "assistant", content: [] } });
-      await pi.emit("message_start", { message: { role: "user", content: text } });
+      await push(3, "New authenticated request");
+      const fresh = pi.sent[1]!;
+      await pi.emit("input", { text: fresh, source: "extension" });
+      await pi.emit("message_start", { message: { role: "user", content: fresh } });
       await pi.tool("telegram_send_file", { path: "public.txt" });
       assert.equal(uploads, 1, "only the begun authenticated follow-up has file authority");
-      await push(3, "Continue this Telegram turn");
-      assert.equal(pi.sent.length, 2);
-      assert.equal(pi.deliveries[1]?.deliverAs, "steer", "active Telegram work still accepts normal steering");
+      await push(4, "Continue this Telegram turn");
+      assert.equal(pi.sent.length, 3);
+      assert.equal(pi.deliveries[2]?.deliverAs, "steer", "active Telegram work still accepts normal steering");
       assert.ok(!network.messages.some(text => /Cannot steer|Please resend|Queued/.test(text)));
     } finally { await pi.emit("session_shutdown"); }
   }));
 }
 
-test("a queued console follow-up retired by disconnect cannot acquire replacement-bot authority", async () =>
+test("a queued steering receipt retired by disconnect cannot acquire replacement-bot authority", async () =>
   fixture(async (cwd, network) => {
     await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
     network.inbound.push({ update_id: 1, message: { message_id: 1, text: "Later request", chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false } } });
@@ -1128,7 +1133,7 @@ test("a queued console follow-up retired by disconnect cannot acquire replacemen
     try {
       await pi.emit("session_start");
       for (let i = 0; i < 100 && !pi.sent.length; i++) await new Promise(r => setTimeout(r, 10));
-      assert.equal(pi.deliveries[0]?.deliverAs, "followUp");
+      assert.equal(pi.deliveries[0]?.deliverAs, "steer");
       const queued = pi.sent[0]!;
       await pi.emit("input", { text: queued, source: "extension" });
       await pi.emit("session_shutdown");
@@ -1343,7 +1348,7 @@ for (const outcome of ["complete", "stop", "off", "disconnect", "other-user", "p
       pi.setIdle(false);
       if (outcome === "console") await pi.emit("message_start", { message: { role: "user", content: "console work" } });
       if (outcome === "queued-before") (pi.ctx as any).hasPendingMessages = () => true;
-      if (outcome === "default" || outcome === "console" || outcome === "steer" || outcome === "queued-before") {
+      if (outcome === "default" || outcome === "steer" || outcome === "queued-before") {
         if (outcome !== "default") await send("/interrupt on");
         await send(outcome === "steer" ? "/steer second request" : "second request");
         assert.equal(pi.aborts(), 0);
@@ -1351,7 +1356,7 @@ for (const outcome of ["complete", "stop", "off", "disconnect", "other-user", "p
         else {
           assert.equal(pi.sent.length, 2);
           assert.notEqual(pi.sent[1], "/pi-telegram-interrupt");
-          assert.equal(pi.deliveries[1]?.deliverAs, outcome === "console" ? "followUp" : "steer");
+          assert.equal(pi.deliveries[1]?.deliverAs, "steer");
         }
         return;
       }
@@ -1366,7 +1371,7 @@ for (const outcome of ["complete", "stop", "off", "disconnect", "other-user", "p
       });
       assert.equal(pi.aborts(), 1);
       assert.equal(pi.sent.length, 2, "replacement waits for cancellation completion");
-      if (outcome === "complete") await send("last correction while stopping");
+      if (outcome === "complete" || outcome === "console") await send("last correction while stopping");
       if (outcome === "stop") await send("/stop");
       if (outcome === "off") await send("/interrupt off");
       if (outcome === "disconnect") await pi.emit("session_shutdown");
@@ -1375,7 +1380,7 @@ for (const outcome of ["complete", "stop", "off", "disconnect", "other-user", "p
       if (outcome === "native-after") await pi.tool("telegram_post", { message: "Question", buttons: [{ label: "Yes", reply: "Yes" }] });
       if (outcome === "verify-failure") await saveProjectSettings(cwd, { version: 2, bots: [bot("111", null)] });
       pi.setIdle(outcome !== "busy-after"); finish(); await handoff;
-      if (outcome === "complete") {
+      if (outcome === "complete" || outcome === "console") {
         assert.equal(pi.sent.length, 3);
         assert.match(pi.sent[2]!, /Message 1:\nsecond request\n\nMessage 2:\ncorrection to second/);
         assert.match(pi.sent[2]!, /Message 3:\nlast correction while stopping/);
@@ -1386,3 +1391,62 @@ for (const outcome of ["complete", "stop", "off", "disconnect", "other-user", "p
     } finally { finish(); await pi.emit("session_shutdown"); }
   }));
 }
+
+for (const blocker of ["none", "busy", "queued", "stale-ack"] as const) test(`reload consults live host state despite orphan receipts: ${blocker}`, async () =>
+  fixture(async (cwd, network) => {
+    await saveProjectSettings(cwd, { version: 2, bots: [bot()] });
+    const original = globalThis.fetch;
+    let deliver: ((response: Response) => void) | undefined;
+    globalThis.fetch = (async (url, init) => {
+      if (String(url).endsWith("/getUpdates") && JSON.parse(String(init?.body)).offset !== -1) {
+        return new Promise<Response>((resolve, reject) => {
+          deliver = resolve;
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+        });
+      }
+      return original(url, init);
+    }) as typeof fetch;
+    const pi = harness(cwd);
+    let reloads = 0, queued = blocker === "queued", id = 0;
+    const acknowledgements = reloadIntents();
+    let stale: string | undefined;
+    Object.assign(pi.ctx, { hasPendingMessages: () => queued, reload: async () => { reloads++; } });
+    const send = async (text: string) => {
+      for (let i = 0; i < 100 && !deliver; i++) await new Promise(r => setTimeout(r, 5));
+      assert.ok(deliver); const next = deliver; deliver = undefined;
+      next(new Response(JSON.stringify({ ok: true, result: [{ update_id: ++id, message: {
+        message_id: id, text, chat: { id: 42, type: "private" }, from: { id: 42, is_bot: false },
+      } }] })));
+      for (let i = 0; i < 100 && !deliver; i++) await new Promise(r => setTimeout(r, 5));
+    };
+    try {
+      await pi.emit("session_start");
+      await send("orphaned request never begun by host");
+      assert.equal(pi.sent.length, 1);
+      if (blocker === "none" || blocker === "stale-ack") {
+        await send("/restart");
+        for (let i = 0; i < 100 && !network.messages.some(text => /Restart (?:is )?unavailable/.test(text)); i++)
+          await new Promise(r => setTimeout(r, 5));
+        assert.ok(network.messages.some(text => /Restart (?:is )?unavailable/.test(text)), "orphan receipt cannot masquerade as pending Pi work");
+        assert.ok(!network.messages.some(text => text.startsWith("Restart refused while work")));
+      }
+      pi.setIdle(blocker !== "busy");
+      await send("/reload");
+      if (blocker === "busy" || blocker === "queued") {
+        assert.equal(pi.sent.length, 1, "live busy/queued host rejects reload");
+        pi.setIdle(true); queued = false;
+        await send("/reload");
+      }
+      assert.equal(pi.sent.at(-1), "/pi-telegram-reload", "orphan receipt cannot block idle reload");
+      await send("/reload"); // A prior unconsumed handoff must not make the session busy.
+      assert.equal(pi.sent.length, 3);
+      if (blocker === "stale-ack") {
+        stale = acknowledgements.arm("dummy identity", pi.ctx.sessionManager);
+        assert.ok(stale, "test reserves the acknowledgement slot for this manager");
+      }
+      await pi.command("pi-telegram-reload");
+      await pi.command("pi-telegram-reload");
+      assert.equal(reloads, 1, "handoff remains one-use even if acknowledgement cannot be armed");
+      assert.equal(network.messages.some(text => text.startsWith("Telegram reloaded")), false, "same factory is not a fresh reload");
+    } finally { if (stale) acknowledgements.cancel(stale); await pi.emit("session_shutdown"); }
+  }));

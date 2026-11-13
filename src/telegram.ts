@@ -744,7 +744,7 @@ export class TelegramSessionConnection {
     }
     if (command?.name === "reload") {
       const result = this.incoming ? false : onReload();
-      const notify = (ok: boolean) => { if (!ok) this.sendControlNotice("Reload is unavailable while Pi is busy. Try /reload again after the current task finishes."); };
+      const notify = (ok: boolean) => { if (!ok) this.sendControlNotice("Reload is unavailable: Pi has active or queued work, a file transfer or package installation is in progress, or this connection is no longer current. Try again after the operation finishes."); };
       if (typeof result === "boolean") notify(result); else void this.track(result.then(notify)).catch(() => this.reportDraftError());
       return;
     }
@@ -756,7 +756,8 @@ export class TelegramSessionConnection {
       try { if (eligible) onStop(); }
       finally { this.cancelOperations(); }
       if (incoming) this.sendControlNotice("File download cancellation requested.");
-      if (!incoming && !eligible) this.sendControlNotice("Nothing is currently running.");
+      if (eligible) this.sendControlNotice("Pi cancellation requested. Completed actions are not undone.");
+      if (!incoming && !eligible) this.sendControlNotice("Pi is currently idle; no active run to stop.");
       return;
     }
     if (command?.name === "steer") {
