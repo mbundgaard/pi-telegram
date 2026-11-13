@@ -11,7 +11,13 @@ Pi Telegram is a globally loaded TypeScript package that makes Telegram a native
 
 Prefer native Telegram drafts, Rich Messages, commands, documents, media, and controls when they improve the experience. Native Thinking is a generic status placeholder, never a channel for hidden reasoning. Keep model-facing usage guidance in the extension's tool descriptions, prompt guidelines, and transport notice, not exclusively in this development guide: consuming projects will not have this file.
 
-## 0.6.13 candidate — authorized publication pending
+## Current 0.6.13 release — verified
+
+- Public npm latest **0.6.13**, release commit `2f4d01a792dfeed047826f1d440a03a0f42b1f6a`, annotated tag `v0.6.13`. Main CI **43386898810** and Trusted Publishing **43387004494** succeeded. One tag push, no retry; registry lag resolved read-only.
+- All **49 published files** byte-match the release commit. SHA-1 `7a482d971bf3695bedc0531d50ccea8f9a224f77`; integrity `sha512-splByYkJ7SxoUb/Em2jQfit319eSB+f/kxG6FJ6SMuAoCRmYaOP27oSMnuhRn+ZCMWxlKhwUIyFucYv0cXA7ZQ==`. Registry hashes and decoded SLSA digest/tag/commit/repository/workflow/run linkage verified, not independent cryptographic-chain verification.
+- Clean ci/typecheck/**328 tests**, full/production audits zero, pack49/diff passed. Dependencies unchanged. No workers, host install/reload or live recovery/cancellation test. Do not republish or rewrite v0.6.13; published docs retain their candidate snapshot.
+
+## Historical 0.6.13 candidate — authorized publication pending
 
 Owner authorized patch bump, commit/push and tag-triggered publication. Registry0.6.13 and matching tag were absent at preparation. Follow docs/releasing.md; no automatic host installation/reload. Behavior and validation scope follow.
 

@@ -2,7 +2,13 @@
 
 [Onboarding](../README.md) · [0.6.0 tool contracts](agent-tools.md) · [Changelog](../CHANGELOG.md)
 
-## 0.6.13 candidate — authorized publication pending
+## 0.6.13 released — verified
+
+npm latest **0.6.13** verified from release commit `2f4d01a792dfeed047826f1d440a03a0f42b1f6a`, annotated tag `v0.6.13`. CI **43386898810** and tag-triggered publication **43387004494** succeeded. Tag pushed once; registry propagation resolved read-only, no retry.
+
+All **49 published files** byte-match that commit. SHA-1 `7a482d971bf3695bedc0531d50ccea8f9a224f77`; integrity `sha512-splByYkJ7SxoUb/Em2jQfit319eSB+f/kxG6FJ6SMuAoCRmYaOP27oSMnuhRn+ZCMWxlKhwUIyFucYv0cXA7ZQ==`. Registry hashes and decoded SLSA digest/tag/commit/repository/workflow/run linkage verified, not independent cryptographic-chain validation. Clean ci/typecheck/328 tests, full and production audits zero, pack49/diff passed. Dependencies unchanged; no workers, host installation/reload or live recovery/cancellation test. Published documentation retains the pre-publication snapshot; do not republish0.6.13.
+
+## Historical 0.6.13 candidate — authorized publication pending
 
 Owner authorized patch release/commit/push/tag publication. Registry0.6.13 and remote tag were absent. Release scope is live-state control simplification below; no dependencies changed, no workers or host installation/reload. Validate clean install/typecheck/tests/audits/pack/diff, then main CI before one annotated tag push and public artifact verification.
 
